@@ -9,18 +9,20 @@ const config: Config = {
         mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
       },
       colors: {
-        buy: { DEFAULT: "#22c55e", light: "#4ade80", dark: "#16a34a" },
-        sell: { DEFAULT: "#ef4444", light: "#f87171", dark: "#dc2626" },
-        accent: { DEFAULT: "#1D9BF0", light: "#4DB5F5", dark: "#1A8CD8" },
+        // Semantic — only use these three for meaning
+        buy:   { DEFAULT: "#22c55e", light: "#4ade80", dark: "#16a34a" }, // profit / buy
+        sell:  { DEFAULT: "#ef4444", light: "#f87171", dark: "#dc2626" }, // loss / sell
+        accent: { DEFAULT: "#1D9BF0", light: "#4DB5F5", dark: "#1A8CD8" }, // interactive / links
+        // Surface scale — monochrome only
         bg: {
-          primary: "#000000",
-          secondary: "#0a0a0a",
-          card: "#111111",
-          hover: "#191919",
+          primary:  "#000000",
+          secondary: "#080808",
+          card:     "#0f0f0f",
+          hover:    "#161616",
           elevated: "#1a1a1a",
         },
-        border: { DEFAULT: "#222222", light: "#333333" },
-        muted: { DEFAULT: "#666666", light: "#888888" },
+        border: { DEFAULT: "#1e1e1e", light: "#2a2a2a" },
+        muted:  { DEFAULT: "#555555", light: "#777777" },
         surface: "#ffffff",
       },
       borderRadius: {
