@@ -10,7 +10,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "ingest": "npx tsx scripts/ingest-trades.ts import",
-    "ingest:poll": "npx tsx scripts/ingest-trades.ts poll"
+    "ingest:poll": "npx tsx scripts/ingest-trades.ts poll",
+    "avatars:download": "node scripts/download-avatars.js"
   },
   "dependencies": {
     "@upstash/ratelimit": "^2.0.8",
