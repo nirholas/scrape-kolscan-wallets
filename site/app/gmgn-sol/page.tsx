@@ -27,6 +27,7 @@ export default async function GmgnSolPage() {
     sells_1d: w.sell_1d,
     sells_7d: w.sell_7d,
     sells_30d: w.sell_30d,
+    winrate_1d: 0,
     winrate_7d: w.winrate_7d,
     winrate_30d: w.winrate_30d,
     avatar: w.avatar,
