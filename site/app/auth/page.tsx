@@ -1,10 +1,24 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { signIn, signOut, signUp, useSession } from "@/lib/auth-client";
 
 export default function AuthPage() {
+  return (
+    <Suspense fallback={
+      <main className="max-w-xl mx-auto px-6 py-14">
+        <div className="rounded-2xl border border-border bg-bg-card p-6 shadow-card">
+          <p className="text-zinc-500 text-sm">Loading...</p>
+        </div>
+      </main>
+    }>
+      <AuthContent />
+    </Suspense>
+  );
+}
+
+function AuthContent() {
   const { data, isPending, refetch } = useSession();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/submit";
