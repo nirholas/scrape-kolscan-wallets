@@ -35,16 +35,61 @@ export async function getDataWithAvatars(): Promise<KolEntry[]> {
 }
 
 // --- GMGN Data ---
+function nonEmpty(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const v = value.trim();
+  return v.length > 0 ? v : null;
+}
+
+function extractNames(wallet: any, walletDetail: any) {
+  const snsId =
+    nonEmpty(wallet?.sns?.id) ||
+    nonEmpty(wallet?.["sns.id"]) ||
+    nonEmpty(wallet?.sns_id) ||
+    nonEmpty(walletDetail?.sns?.id) ||
+    nonEmpty(walletDetail?.["sns.id"]) ||
+    nonEmpty(walletDetail?.sns_id);
+
+  const ensName =
+    nonEmpty(wallet?.ens) ||
+    nonEmpty(wallet?.ens_name) ||
+    nonEmpty(walletDetail?.ens) ||
+    nonEmpty(walletDetail?.ens_name);
+
+  const explicitName =
+    nonEmpty(wallet?.name) ||
+    nonEmpty(wallet?.nickname) ||
+    nonEmpty(walletDetail?.name) ||
+    nonEmpty(walletDetail?.nickname);
+
+  const socialName = nonEmpty(wallet?.twitter_name) || nonEmpty(walletDetail?.twitter_name);
+
+  return {
+    snsId,
+    ensName,
+    name: explicitName || snsId || ensName || socialName || null,
+  };
+}
+
 function parseGmgnRaw(raw: any, chain: "sol" | "bsc"): GmgnWallet[] {
   const wallets: GmgnWallet[] = [];
   const seen = new Set<string>();
+  const details: Record<string, any> = {
+    ...(raw?.walletDetails || {}),
+    ...(raw?.wallet_details || {}),
+  };
 
   function addWallet(w: any, category: string) {
     if (!w.wallet_address || seen.has(w.wallet_address)) return;
     seen.add(w.wallet_address);
+    const detail = details[w.wallet_address] || null;
+    const names = extractNames(w, detail);
+
     wallets.push({
       wallet_address: w.wallet_address,
-      name: w.name || w.twitter_name || w.nickname || w.wallet_address.slice(0, 8),
+      name: names.name || w.wallet_address.slice(0, 8),
+      sns_id: names.snsId,
+      ens_name: names.ensName,
       twitter_username: w.twitter_username || null,
       twitter_name: w.twitter_name || null,
       avatar: w.avatar || null,
@@ -203,6 +248,8 @@ function gmgnToUnified(wallets: GmgnWallet[]): UnifiedWallet[] {
   return wallets.map((w) => ({
     wallet_address: w.wallet_address,
     name: w.name,
+    sns_id: w.sns_id,
+    ens_name: w.ens_name,
     twitter: w.twitter_username ? `https://x.com/${w.twitter_username}` : null,
     chain: w.chain,
     source: "gmgn" as const,

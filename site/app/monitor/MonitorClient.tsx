@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import { timeAgo, shortAddr, formatUsd } from "@/lib/format";
+import { avatarFallbackStyle } from "@/lib/avatar";
 import ExportButton from "../components/ExportButton";
 import ShareButtons from "../components/ShareButtons";
 
@@ -94,11 +95,13 @@ const CATEGORY_LABELS: Record<string, string> = {
 function FallbackImg({
   src,
   fallbackLetter,
+  seed,
   size,
   className,
 }: {
   src: string;
   fallbackLetter: string;
+  seed: string;
   size: "sm" | "md";
   className?: string;
 }) {
@@ -107,7 +110,10 @@ function FallbackImg({
   const textSize = size === "sm" ? "text-[9px]" : size === "md" ? "text-xs" : "text-[10px]";
   if (failed || !src) {
     return (
-      <div className={`${px} rounded-full bg-bg-hover flex items-center justify-center ${textSize} text-zinc-500 flex-shrink-0 ${className || ""}`}>
+      <div
+        className={`${px} rounded-full border flex items-center justify-center ${textSize} flex-shrink-0 ${className || ""}`}
+        style={avatarFallbackStyle(seed)}
+      >
         {fallbackLetter}
       </div>
     );
@@ -229,11 +235,15 @@ function WalletCard({ group }: { group: WalletGroup }) {
             <FallbackImg
               src={info.avatar}
               fallbackLetter={name.charAt(0).toUpperCase()}
+              seed={walletAddress}
               size="md"
               className="border border-border"
             />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-bg-hover flex items-center justify-center text-xs text-zinc-500 flex-shrink-0 border border-border">
+            <div
+              className="w-8 h-8 rounded-full border flex items-center justify-center text-xs flex-shrink-0"
+              style={avatarFallbackStyle(walletAddress)}
+            >
               {name.charAt(0).toUpperCase()}
             </div>
           )}
@@ -293,6 +303,7 @@ function WalletCard({ group }: { group: WalletGroup }) {
                 <FallbackImg
                   src={t.tokenLogo}
                   fallbackLetter={(t.tokenSymbol || "?").charAt(0).toUpperCase()}
+                  seed={t.tokenAddress}
                   size="sm"
                 />
               )}
@@ -418,10 +429,14 @@ function WalletSidebar({
                 <FallbackImg
                   src={info.avatar}
                   fallbackLetter={name.charAt(0).toUpperCase()}
+                  seed={g.walletAddress}
                   size="sm"
                 />
               ) : (
-                <div className="w-6 h-6 rounded-full bg-bg-hover flex items-center justify-center text-[10px] text-zinc-600 flex-shrink-0">
+                <div
+                  className="w-6 h-6 rounded-full border flex items-center justify-center text-[10px] flex-shrink-0"
+                  style={avatarFallbackStyle(g.walletAddress)}
+                >
                   {name.charAt(0).toUpperCase()}
                 </div>
               )}

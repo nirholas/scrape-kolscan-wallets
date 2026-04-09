@@ -140,6 +140,8 @@ function UnifiedTableInner({
       entries = entries.filter(
         (w) =>
           w.name.toLowerCase().includes(q) ||
+          (w.sns_id || "").toLowerCase().includes(q) ||
+          (w.ens_name || "").toLowerCase().includes(q) ||
           w.wallet_address.toLowerCase().includes(q) ||
           w.tags.some((t) => t.toLowerCase().includes(q))
       );
@@ -287,6 +289,7 @@ function UnifiedTableInner({
                 const sells = (w as unknown as Record<string, number>)[sellsField] || 0;
                 const wr = timeframe === 1 ? w.winrate_1d : timeframe === 30 ? w.winrate_30d : w.winrate_7d;
                 const catColor = CATEGORY_COLORS[w.category] || "bg-zinc-500/20 text-zinc-400 border-zinc-500/30";
+                const extraNames = [w.sns_id, w.ens_name].filter((n): n is string => !!n && n !== w.name);
 
                 return (
                   <tr
@@ -304,16 +307,23 @@ function UnifiedTableInner({
                         <div className={`w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center text-[9px] font-bold text-zinc-500 flex-shrink-0 border border-zinc-700 ${w.avatar ? 'hidden' : ''}`}>
                           {w.name.charAt(0).toUpperCase()}
                         </div>
-                        <Link
-                          href={
-                            w.source === "kolscan"
-                              ? `/wallet/${w.wallet_address}`
-                              : `/gmgn-wallet/${w.wallet_address}?chain=${w.chain}`
-                          }
-                          className="text-white text-sm font-medium hover:text-buy transition-colors"
-                        >
-                          {w.name}
-                        </Link>
+                        <div className="min-w-0">
+                          <Link
+                            href={
+                              w.source === "kolscan"
+                                ? `/wallet/${w.wallet_address}`
+                                : `/gmgn-wallet/${w.wallet_address}?chain=${w.chain}`
+                            }
+                            className="text-white text-sm font-medium hover:text-buy transition-colors"
+                          >
+                            {w.name}
+                          </Link>
+                          {extraNames.length > 0 && (
+                            <div className="text-[10px] text-zinc-500 font-mono truncate">
+                              {extraNames.join(" · ")}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </td>
 

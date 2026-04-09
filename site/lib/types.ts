@@ -15,6 +15,8 @@ export interface KolEntry {
 export interface GmgnWallet {
   wallet_address: string;
   name: string;
+  sns_id?: string | null;
+  ens_name?: string | null;
   twitter_username: string | null;
   twitter_name: string | null;
   avatar: string | null;
@@ -75,6 +77,8 @@ export interface GmgnWallet {
 export interface UnifiedWallet {
   wallet_address: string;
   name: string;
+  sns_id?: string | null;
+  ens_name?: string | null;
   twitter: string | null;
   chain: "sol" | "bsc";
   source: "kolscan" | "gmgn";

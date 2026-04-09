@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAllSolanaWallets, getBscWallets } from "@/lib/data";
 
 export async function GET(req: NextRequest) {
-  const q = (req.nextUrl.searchParams.get("q") || "").trim().toLowerCase();
+  const rawQ = (req.nextUrl.searchParams.get("q") || "").trim();
+  const q = rawQ.toLowerCase();
   if (q.length < 2) return NextResponse.json({ results: [] });
 
   const [sol, bsc] = await Promise.all([getAllSolanaWallets(), getBscWallets()]);
@@ -18,6 +19,19 @@ export async function GET(req: NextRequest) {
 
   const results: SearchResult[] = [];
   const limit = 12;
+
+  const isSolAddress = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(rawQ);
+  const isEvmAddress = /^0x[a-fA-F0-9]{40}$/.test(rawQ);
+
+  if (isSolAddress || isEvmAddress) {
+    results.push({
+      type: "wallet",
+      address: isEvmAddress ? rawQ.toLowerCase() : rawQ,
+      label: `${rawQ.slice(0, 6)}...${rawQ.slice(-4)}`,
+      sublabel: isSolAddress ? "Open wallet details (Solana)" : "Open wallet details (EVM)",
+      chain: isSolAddress ? "sol" : "evm",
+    });
+  }
 
   // Search wallets by name, address, twitter
   for (const w of [...sol, ...bsc]) {
@@ -37,26 +51,15 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // If query looks like a raw address (no matches), still return it as a direct link
-  if (results.length === 0) {
-    if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(q)) {
-      results.push({
-        type: "wallet",
-        address: q,
-        label: `${q.slice(0, 6)}...${q.slice(-4)}`,
-        sublabel: "Look up Solana address",
-        chain: "sol",
-      });
-    } else if (/^0x[a-fA-F0-9]{40}$/i.test(q)) {
-      results.push({
-        type: "wallet",
-        address: q,
-        label: `${q.slice(0, 6)}...${q.slice(-4)}`,
-        sublabel: "Look up BSC address",
-        chain: "bsc",
-      });
-    }
+  const deduped: SearchResult[] = [];
+  const seen = new Set<string>();
+  for (const r of results) {
+    const key = `${r.type}:${r.address.toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(r);
+    if (deduped.length >= limit) break;
   }
 
-  return NextResponse.json({ results });
+  return NextResponse.json({ results: deduped });
 }

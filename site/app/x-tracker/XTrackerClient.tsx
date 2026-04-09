@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { avatarFallbackStyle } from "@/lib/avatar";
 import type { XTrackerAccount } from "@/lib/types";
 
 type SortField = "handle" | "subscribers" | "followers" | "tag";
@@ -261,7 +262,10 @@ export default function XTrackerClient({ accounts }: { accounts: XTrackerAccount
                             loading="lazy"
                           />
                         ) : (
-                          <div className="w-8 h-8 rounded-full bg-bg-hover border border-border flex items-center justify-center text-zinc-600 text-xs flex-shrink-0">
+                          <div
+                            className="w-8 h-8 rounded-full border flex items-center justify-center text-xs flex-shrink-0"
+                            style={avatarFallbackStyle(acc.handle)}
+                          >
                             {acc.handle[0]?.toUpperCase()}
                           </div>
                         )}

@@ -13,6 +13,8 @@ export default async function GmgnSolPage() {
   const unified: UnifiedWallet[] = gmgnData.map((w) => ({
     wallet_address: w.wallet_address,
     name: w.name,
+    sns_id: w.sns_id,
+    ens_name: w.ens_name,
     twitter: w.twitter_username ? `https://x.com/${w.twitter_username}` : null,
     chain: "sol" as const,
     source: "gmgn" as const,

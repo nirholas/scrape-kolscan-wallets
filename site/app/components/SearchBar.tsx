@@ -75,8 +75,7 @@ export default function SearchBar() {
     setQuery("");
     setResults([]);
     if (r.type === "wallet") {
-      const prefix = r.chain === "bsc" ? "/gmgn-wallet" : "/wallet";
-      router.push(`${prefix}/${r.address}`);
+      router.push(`/wallet/${r.address}`);
     } else {
       router.push(`/token/${r.chain}/${r.address}`);
     }
@@ -110,10 +109,10 @@ export default function SearchBar() {
       return;
     }
     // EVM address
-    if (/^0x[a-fA-F0-9]{40}$/.test(q)) {
+    if (/^0x[a-fA-F0-9]{40}$/i.test(q)) {
       setOpen(false);
       setQuery("");
-      router.push(`/gmgn-wallet/${q}?chain=bsc`);
+      router.push(`/wallet/${q.toLowerCase()}`);
       return;
     }
   }
