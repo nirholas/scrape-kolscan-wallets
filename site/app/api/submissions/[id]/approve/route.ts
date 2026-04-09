@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/drizzle/db";
 import { user, walletSubmission } from "@/drizzle/db/schema";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(_request: Request, { params }: { params: { id: string } }) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -19,6 +20,11 @@ export async function POST(_request: Request, { params }: { params: { id: string
 
   if (roleRow?.role !== "admin") {
     return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  }
+
+  const rl = checkRateLimit(`approve:${session.user.id}`, 60, 60 * 60 * 1000);
+  if (!rl.success) {
+    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
   }
 
   const [updated] = await db

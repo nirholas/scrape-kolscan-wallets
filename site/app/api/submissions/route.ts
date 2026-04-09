@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { z } from "zod";
-import { and, desc, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/drizzle/db";
 import { user, walletSubmission } from "@/drizzle/db/schema";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const schema = z.object({
   walletAddress: z.string().min(24).max(80),
@@ -42,6 +43,14 @@ export async function POST(request: Request) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+  }
+
+  const rl = checkRateLimit(`submit:${session.user.id}`, 12, 60 * 60 * 1000);
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: `Rate limit exceeded. Try again after ${rl.reset}.` },
+      { status: 429 },
+    );
   }
 
   let body: unknown;
