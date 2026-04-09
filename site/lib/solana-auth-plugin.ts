@@ -85,21 +85,22 @@ export function solanaWallet(): BetterAuthPlugin {
 
           if (!dbUser) {
             const shortAddr = `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`;
-            dbUser = await ctx.context.internalAdapter.createUser({
+            const created = await ctx.context.internalAdapter.createUser({
               name: shortAddr,
               email,
               emailVerified: true,
             });
-            if (!dbUser) {
+            if (!created) {
               throw new APIError("INTERNAL_SERVER_ERROR", {
                 message: "Failed to create user",
               });
             }
+            dbUser = { user: created, accounts: [] } as typeof dbUser;
           }
 
           // Create session
           const session = await ctx.context.internalAdapter.createSession(
-            dbUser.user.id,
+            dbUser!.user.id,
           );
           if (!session) {
             throw new APIError("INTERNAL_SERVER_ERROR", {
