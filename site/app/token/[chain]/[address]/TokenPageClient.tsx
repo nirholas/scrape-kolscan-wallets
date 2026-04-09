@@ -5,6 +5,10 @@ import Link from "next/link";
 import NextImage from "next/image";
 import { getChartEmbedUrl } from "@/lib/token-api";
 import { timeAgo, shortAddr, explorerUrl, walletHref } from "@/lib/format";
+import PriceChart from "./components/PriceChart";
+import SecurityCard from "./components/SecurityCard";
+import HolderList from "./components/HolderList";
+import TradesFeed from "./components/TradesFeed";
 
 interface TokenData {
   address: string;
@@ -63,6 +67,14 @@ interface Stats {
 }
 
 type ChartProvider = "dexscreener" | "geckoterminal";
+type ChartMode = "embed" | "ohlcv";
+
+interface KnownWallet {
+  wallet_address: string;
+  name: string;
+  avatar: string | null;
+  twitter_username: string | null;
+}
 
 function TokenLogo({ src, size }: { src: string; size: number }) {
   const [failed, setFailed] = useState(false);
@@ -111,9 +123,11 @@ function fmt(v: number | null, prefix = "$"): string {
 export default function TokenPageClient({
   chain,
   address,
+  knownWallets = [],
 }: {
   chain: "sol" | "bsc";
   address: string;
+  knownWallets?: KnownWallet[];
 }) {
   const [token, setToken] = useState<TokenData | null>(null);
   const [kols, setKols] = useState<KolSummary[]>([]);
@@ -121,13 +135,16 @@ export default function TokenPageClient({
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [chartProvider, setChartProvider] = useState<ChartProvider>("dexscreener");
-  const [activeTab, setActiveTab] = useState<"kols" | "trades">("kols");
+  const [chartMode, setChartMode] = useState<ChartMode>("embed");
+  const [activeTab, setActiveTab] = useState<"kols" | "trades" | "holders" | "livefeed">("kols");
 
   useEffect(() => {
     // Load preferred chart provider from localStorage
     const saved = localStorage.getItem("chartProvider") as ChartProvider | null;
     if (saved === "dexscreener" || saved === "geckoterminal") setChartProvider(saved);
-  }, []);
+    // Default to OHLCV chart for Solana
+    if (chain === "sol") setChartMode("ohlcv");
+  }, [chain]);
 
   useEffect(() => {
     fetch(`/api/token/${chain}/${address}`)
@@ -145,6 +162,17 @@ export default function TokenPageClient({
   function setChart(provider: ChartProvider) {
     setChartProvider(provider);
     localStorage.setItem("chartProvider", provider);
+  }
+
+  function handleShare() {
+    const url = window.location.href;
+    if (navigator.share) {
+      navigator.share({ title: `${token?.symbol ?? address} | KOL Quest`, url }).catch(() => {
+        navigator.clipboard.writeText(url);
+      });
+    } else {
+      navigator.clipboard.writeText(url);
+    }
   }
 
   const chartUrl =
@@ -228,7 +256,16 @@ export default function TokenPageClient({
             <div className="text-[10px] text-zinc-600 mt-0.5">via {token.source}</div>
           </div>
         </div>
-
+          {/* Share */}
+          <div className="flex-shrink-0">
+            <button
+              onClick={handleShare}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition-colors border border-border"
+            >
+              Share ↗
+            </button>
+          </div>
+        </div>
         {/* Stats row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-4 border-t border-border">
           {[
@@ -273,28 +310,59 @@ export default function TokenPageClient({
         )}
       </div>
 
+      {/* ── Security Card (Solana only) ── */}
+      {chain === "sol" && (
+        <SecurityCard chain={chain} address={address} />
+      )}
+
       {/* ── Chart ── */}
       <div className="bg-bg-card border border-border rounded-xl overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <span className="text-sm font-medium text-white">Chart</span>
           <div className="flex items-center gap-1">
-            {(["dexscreener", "geckoterminal"] as ChartProvider[]).map((p) => (
-              <button
-                key={p}
-                onClick={() => setChart(p)}
-                className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all ${
-                  chartProvider === p
-                    ? "bg-white text-black"
-                    : "text-zinc-500 hover:text-white"
-                }`}
-              >
-                {p === "dexscreener" ? "DexScreener" : "GeckoTerminal"}
-              </button>
-            ))}
+            {chain === "sol" && (
+              <>
+                <button
+                  onClick={() => setChartMode("ohlcv")}
+                  className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all ${
+                    chartMode === "ohlcv" ? "bg-white text-black" : "text-zinc-500 hover:text-white"
+                  }`}
+                >
+                  OHLCV
+                </button>
+                <button
+                  onClick={() => setChartMode("embed")}
+                  className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all ${
+                    chartMode === "embed" ? "bg-white text-black" : "text-zinc-500 hover:text-white"
+                  }`}
+                >
+                  Embed
+                </button>
+                {chartMode === "embed" && (
+                  <span className="text-zinc-700 mx-1">|</span>
+                )}
+              </>
+            )}
+            {(chartMode === "embed" || chain !== "sol") &&
+              (["dexscreener", "geckoterminal"] as ChartProvider[]).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setChart(p)}
+                  className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all ${
+                    chartProvider === p
+                      ? "bg-white text-black"
+                      : "text-zinc-500 hover:text-white"
+                  }`}
+                >
+                  {p === "dexscreener" ? "DexScreener" : "GeckoTerminal"}
+                </button>
+              ))}
           </div>
         </div>
 
-        {chartUrl ? (
+        {chain === "sol" && chartMode === "ohlcv" ? (
+          <PriceChart chain={chain} address={address} symbol={token.symbol} />
+        ) : chartUrl ? (
           <iframe
             src={chartUrl}
             className="w-full"
@@ -429,7 +497,17 @@ export default function TokenPageClient({
           )
         )}
 
-        {/* Trades tab */}
+        {/* Live Feed tab */}
+        {activeTab === "livefeed" && (
+          <TradesFeed chain={chain} address={address} />
+        )}
+
+        {/* Holders tab */}
+        {activeTab === "holders" && (
+          <HolderList chain={chain} address={address} knownWallets={knownWallets} />
+        )}
+
+        {/* KOL Trades tab */}
         {activeTab === "trades" && (
           trades.length === 0 ? (
             <div className="py-12 text-center text-zinc-600 text-sm">No trades recorded.</div>
