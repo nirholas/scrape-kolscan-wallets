@@ -94,7 +94,7 @@ export default function TrendingClient() {
               <td className="px-3 py-2.5 text-xs text-zinc-600 tabular-nums">{i + 1}</td>
               <td className="px-3 py-2.5">
                 <Link
-                  href={`/token/${t.tokenAddress}?chain=${t.chain}`}
+                  href={`/token/${t.chain}/${t.tokenAddress}`}
                   className="flex items-center gap-2 group"
                 >
                   {t.tokenLogo ? (

@@ -78,7 +78,7 @@ export default function SearchBar() {
       const prefix = r.chain === "bsc" ? "/gmgn-wallet" : "/wallet";
       router.push(`${prefix}/${r.address}`);
     } else {
-      router.push(`/token/${r.address}?chain=${r.chain}`);
+      router.push(`/token/${r.chain}/${r.address}`);
     }
   }
 
