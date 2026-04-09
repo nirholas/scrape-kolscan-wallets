@@ -1,9 +1,8 @@
 import { createAuthClient } from "better-auth/react";
 import { usernameClient } from "better-auth/client/plugins";
 import { siweClient } from "better-auth/client/plugins";
-import type { auth } from "./auth";
 
-const authClient = createAuthClient<typeof auth>({
+const authClient = createAuthClient({
   baseURL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL || process.env.NEXT_PUBLIC_URL,
   plugins: [usernameClient(), siweClient()],
 });

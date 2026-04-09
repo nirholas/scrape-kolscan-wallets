@@ -60,11 +60,11 @@ function AuthContent() {
         window.location.href = redirectTo;
         return;
       } else {
-        const result = await authClient.signUp.username({
-          username,
-          password,
-          name: username,
+        const result = await authClient.signUp.email({
           email: `${username}@wallet.local`,
+          name: username,
+          password,
+          username,
         });
         if (result?.error) throw new Error(result.error.message || "Sign up failed");
         await tryBootstrapAdmin();

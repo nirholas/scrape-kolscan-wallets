@@ -72,7 +72,7 @@ async function main() {
     }
     
     // Rate limit: 100ms between requests
-    await new Promise(r => setTimeout(r, 100));
+    await new Promise(r => setTimeout(r, 2000));
   }
 
   console.log(`\nDone: ${downloaded} downloaded, ${failed} failed`);

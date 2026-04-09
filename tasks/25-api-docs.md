@@ -227,13 +227,13 @@ site/lib/
 ```
 
 ## Acceptance Criteria
-- [ ] Documentation page renders
-- [ ] All endpoints documented
-- [ ] Interactive playground works
-- [ ] OpenAPI spec generated
-- [ ] Code examples for all endpoints
-- [ ] Error codes documented
+- [x] Documentation page renders
+- [x] All endpoints documented
+- [x] Interactive playground works
+- [x] OpenAPI spec generated
+- [x] Code examples for all endpoints
+- [x] Error codes documented
 - [ ] API key management UI
-- [ ] Mobile responsive
-- [ ] Search functionality
-- [ ] Copy-to-clipboard for code
+- [x] Mobile responsive
+- [x] Search functionality
+- [x] Copy-to-clipboard for code
