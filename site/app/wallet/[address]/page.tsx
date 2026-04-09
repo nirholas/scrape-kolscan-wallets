@@ -16,18 +16,6 @@ function fmt(v: number) {
   return `${v >= 0 ? "+" : ""}${v.toFixed(2)} SOL`;
 }
 
-function relativeTime(ts: number): string {
-  if (!ts) return "N/A";
-  const diff = Date.now() - ts * 1000;
-  const m = diff / 60000;
-  const h = m / 60;
-  const d = h / 24;
-  if (d >= 1) return `${Math.floor(d)}d ago`;
-  if (h >= 1) return `${Math.floor(h)}h ago`;
-  if (m >= 1) return `${Math.floor(m)}m ago`;
-  return "just now";
-}
-
 export async function generateStaticParams() {
   const data = await getData();
   const addresses = [...new Set(data.map((e) => e.wallet_address))];

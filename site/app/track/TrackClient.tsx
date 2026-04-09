@@ -46,11 +46,6 @@ function formatInflow(v: number): string {
   return v >= 0 ? `$+${s}` : `$-${s}`;
 }
 
-function formatTxs(buy: number, sell: number): string {
-  const fmt = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(0)}K` : String(n));
-  return `${fmt(buy)} / ${fmt(sell)}`;
-}
-
 export default function TrackClient() {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("24h");
   const [group, setGroup] = useState<GroupFilter>("all");

@@ -5,7 +5,6 @@ import type { XTrackerAccount } from "@/lib/types";
 
 type SortField = "handle" | "subscribers" | "followers" | "tag";
 type SortDir = "asc" | "desc";
-type Tab = "all" | "kol" | "influencer" | "exchange" | "vc" | "other";
 
 function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
   if (!active) return <span className="text-zinc-700 ml-1 text-[10px]">↕</span>;

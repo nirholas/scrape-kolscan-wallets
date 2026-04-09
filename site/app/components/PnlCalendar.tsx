@@ -35,7 +35,7 @@ function profitBg(v: number) {
 
 type TimeframeView = 1 | 7 | 30;
 
-export default function PnlCalendar({ entries, walletAddress, walletName }: CalendarProps) {
+export default function PnlCalendar({ entries, walletAddress }: CalendarProps) {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
@@ -107,8 +107,6 @@ export default function PnlCalendar({ entries, walletAddress, walletName }: Cale
 
   // Total stats
   const totalProfit = entries.reduce((s, e) => s + e.profit, 0);
-  const totalWins = entries.reduce((s, e) => s + e.wins, 0);
-  const totalLosses = entries.reduce((s, e) => s + e.losses, 0);
 
   // Navigate months
   const prevMonth = () => {

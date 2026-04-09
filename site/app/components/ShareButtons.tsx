@@ -27,7 +27,7 @@ const SHARE_TARGETS = [
     key: "linkedin",
     label: "LinkedIn",
     icon: "in",
-    buildUrl: (url: string, text: string) =>
+    buildUrl: (url: string, _text: string) =>
       `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
   },
   {

@@ -383,10 +383,8 @@ function WalletCard({ group }: { group: WalletGroup }) {
 
 function WalletSidebar({
   groups,
-  walletMap,
 }: {
   groups: WalletGroup[];
-  walletMap: Record<string, WalletInfo>;
 }) {
   // Show top wallets from the current feed sorted by activity
   const activeWallets = groups.slice(0, 30);
@@ -519,7 +517,7 @@ function MonitorInner({ walletMap }: Props) {
       {/* Left sidebar */}
       {sidebarOpen && (
         <div className="hidden lg:flex flex-col w-72 border-r border-border bg-bg-secondary flex-shrink-0">
-          <WalletSidebar groups={groups} walletMap={walletMap} />
+          <WalletSidebar groups={groups} />
         </div>
       )}
 

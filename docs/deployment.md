@@ -18,7 +18,7 @@ All variables must be set in production:
 |:---------|:---------|:------|
 | `DATABASE_URL` | Yes | PostgreSQL connection string with SSL if hosted |
 | `AUTH_SECRET` | Yes | Must be the same across deploys to preserve sessions |
-| `NEXT_PUBLIC_URL` | Yes | Your production URL (e.g. `https://kolquest.com`) |
+| `NEXT_PUBLIC_URL` | Yes | Your production URL (e.g. `https://kol.quest`) |
 | `NEXT_PUBLIC_BETTER_AUTH_URL` | Yes | Usually same as `NEXT_PUBLIC_URL` |
 | `ADMIN_USERNAME` | Optional | Username for auto-admin bootstrap |
 | `GMGN_TOKEN` | Optional | For trade polling script |
@@ -76,7 +76,7 @@ Example nginx config:
 ```nginx
 server {
     listen 443 ssl;
-    server_name kolquest.com;
+    server_name kol.quest;
 
     location / {
         proxy_pass http://localhost:3000;

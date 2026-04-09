@@ -13,6 +13,7 @@ interface ProfileData {
   wins?: number;
   losses?: number;
   winrate?: number;
+  [key: string]: unknown;
 }
 
 export default function ProfileActions({

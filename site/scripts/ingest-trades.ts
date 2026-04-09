@@ -19,7 +19,7 @@
 
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
-import { eq } from "drizzle-orm";
+
 import * as schema from "../drizzle/db/schema";
 import * as fs from "fs";
 import * as path from "path";

@@ -3,11 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "@/lib/auth-client";
 
-type SessionUser = {
-  id: string;
-  email: string;
-  name: string;
-};
+
 
 type Submission = {
   id: string;
