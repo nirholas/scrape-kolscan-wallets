@@ -15,7 +15,7 @@ const ENDPOINTS = [
   { label: "Health", path: "/health", params: "" },
 ];
 
-const DEFAULT_BASE = "http://localhost:3002";
+const DEFAULT_BASE = "http://kol.quest";
 
 export default function ApiPlayground() {
   const [baseUrl, setBaseUrl] = useState(DEFAULT_BASE);

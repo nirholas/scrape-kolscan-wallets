@@ -11,7 +11,7 @@ const LLMS_TXT = `# KolQuest
 
 ## API
 
-Base URL: \`http://localhost:3002\` (self-hosted via \`bun api/index.ts\`)
+Base URL: \`http://kol.quest\` (self-hosted via \`bun api/index.ts\`)
 
 ### KolScan Endpoints
 - GET /health — Health check with data counts
