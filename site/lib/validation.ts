@@ -7,7 +7,7 @@ const httpsUrl = z
 
 export const submissionSchema = z.object({
   walletAddress: z.string().min(24).max(80),
-  chain: z.enum(["solana", "bsc"]),
+  chain: z.enum(["sol", "bsc"]),
   label: z.string().min(2).max(80),
   notes: z.string().max(800).optional().nullable(),
   twitter: httpsUrl.optional().nullable(),

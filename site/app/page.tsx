@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { getData, getSolGmgnData, getBscGmgnData } from "@/lib/data";
+import Image from "next/image";
+import { getData, getDataWithAvatars, getSolGmgnData, getBscGmgnData } from "@/lib/data";
 import RecentTradesPreview from "./components/RecentTradesPreview";
 
 function formatPnl(val: number): string {
@@ -119,8 +120,28 @@ async function StatsBar() {
   );
 }
 
+function Avatar({ src, name }: { src?: string | null; name: string }) {
+  if (src) {
+    return (
+      <Image
+        src={src}
+        alt={name}
+        width={20}
+        height={20}
+        className="rounded-full shrink-0 object-cover"
+        unoptimized
+      />
+    );
+  }
+  return (
+    <span className="w-5 h-5 rounded-full bg-zinc-800 shrink-0 flex items-center justify-center text-[9px] text-zinc-500 font-mono">
+      {name[0]?.toUpperCase() ?? "?"}
+    </span>
+  );
+}
+
 async function KolScanPreview() {
-  const data = await getData();
+  const data = await getDataWithAvatars();
   const topByProfit = [...data.filter((e) => e.timeframe === 1)]
     .sort((a, b) => b.profit - a.profit)
     .slice(0, 5);
@@ -148,7 +169,8 @@ async function KolScanPreview() {
               <tr key={e.wallet_address} className="border-b border-zinc-900 last:border-b-0 hover:bg-bg-card transition-colors">
                 <td className="px-3 py-2 text-[11px] text-zinc-700 font-mono tabular-nums">{i + 1}</td>
                 <td className="px-3 py-2">
-                  <Link href={`/wallet/${e.wallet_address}`} className="text-xs text-zinc-300 hover:text-white transition-colors">
+                  <Link href={`/wallet/${e.wallet_address}`} className="flex items-center gap-1.5 text-xs text-zinc-300 hover:text-white transition-colors">
+                    <Avatar src={e.avatar} name={e.name} />
                     {e.name}
                   </Link>
                 </td>
@@ -191,7 +213,8 @@ async function GmgnSolPreview() {
               <tr key={w.wallet_address} className="border-b border-zinc-900 last:border-b-0 hover:bg-bg-card transition-colors">
                 <td className="px-3 py-2 text-[11px] text-zinc-700 font-mono tabular-nums">{i + 1}</td>
                 <td className="px-3 py-2">
-                  <Link href={`/gmgn-wallet/${w.wallet_address}?chain=sol`} className="text-xs text-zinc-300 hover:text-white transition-colors">
+                  <Link href={`/gmgn-wallet/${w.wallet_address}?chain=sol`} className="flex items-center gap-1.5 text-xs text-zinc-300 hover:text-white transition-colors">
+                    <Avatar src={w.avatar} name={w.name} />
                     {w.name}
                   </Link>
                 </td>
@@ -234,7 +257,8 @@ async function GmgnBscPreview() {
               <tr key={w.wallet_address} className="border-b border-zinc-900 last:border-b-0 hover:bg-bg-card transition-colors">
                 <td className="px-3 py-2 text-[11px] text-zinc-700 font-mono tabular-nums">{i + 1}</td>
                 <td className="px-3 py-2">
-                  <Link href={`/gmgn-wallet/${w.wallet_address}?chain=bsc`} className="text-xs text-zinc-300 hover:text-white transition-colors">
+                  <Link href={`/gmgn-wallet/${w.wallet_address}?chain=bsc`} className="flex items-center gap-1.5 text-xs text-zinc-300 hover:text-white transition-colors">
+                    <Avatar src={w.avatar} name={w.name} />
                     {w.name}
                   </Link>
                 </td>

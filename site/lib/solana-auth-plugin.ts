@@ -53,7 +53,8 @@ export function solanaWallet(): BetterAuthPlugin {
               message: "Invalid or expired nonce",
             });
           }
-          if (!message.includes(stored.nonce)) {
+          const nonceMatch = message.match(/^Nonce:\s*(\S+)$/m);
+          if (!nonceMatch || nonceMatch[1] !== stored.nonce) {
             throw new APIError("BAD_REQUEST", {
               message: "Nonce mismatch",
             });
@@ -79,8 +80,10 @@ export function solanaWallet(): BetterAuthPlugin {
             });
           }
 
-          // Find or create user by Solana wallet address
-          const email = `${walletAddress}@solana.wallet`;
+          // Find or create user by Solana wallet address.
+          // Use a hashed email to avoid collisions with real accounts.
+          const emailHash = crypto.createHash("sha256").update(`solana:${walletAddress}`).digest("hex").slice(0, 16);
+          const email = `${emailHash}@solana.wallet`;
           let dbUser = await ctx.context.internalAdapter.findUserByEmail(email);
 
           if (!dbUser) {
@@ -91,6 +94,7 @@ export function solanaWallet(): BetterAuthPlugin {
               emailVerified: true,
             });
             if (!created) {
+              console.error("[solana-auth] createUser returned null for wallet:", walletAddress);
               throw new APIError("INTERNAL_SERVER_ERROR", {
                 message: "Failed to create user",
               });
@@ -104,6 +108,7 @@ export function solanaWallet(): BetterAuthPlugin {
             dbUser!.user.id,
           );
           if (!session) {
+            console.error("[solana-auth] createSession returned null for userId:", dbUser!.user.id);
             throw new APIError("INTERNAL_SERVER_ERROR", {
               message: "Failed to create session",
             });

@@ -12,7 +12,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
+  let body: any;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
   const trades: any[] = body.trades;
 
   if (!Array.isArray(trades) || trades.length === 0) {
@@ -26,20 +32,25 @@ export async function POST(req: NextRequest) {
   const validChains = new Set(["sol", "bsc"]);
   const validTypes = new Set(["buy", "sell"]);
 
-  const rows = trades
-    .filter(
-      (t) =>
-        t.walletAddress &&
-        typeof t.walletAddress === "string" &&
-        t.walletAddress.length <= 96 &&
-        validChains.has(t.chain) &&
-        validTypes.has(t.type) &&
-        t.tokenAddress &&
-        typeof t.tokenAddress === "string" &&
-        t.tokenAddress.length <= 96 &&
-        t.tradedAt,
-    )
-    .map((t) => ({
+  const rows = [];
+  let rejected = 0;
+
+  for (const t of trades) {
+    if (
+      !t.walletAddress ||
+      typeof t.walletAddress !== "string" ||
+      t.walletAddress.length > 96 ||
+      !validChains.has(t.chain) ||
+      !validTypes.has(t.type) ||
+      !t.tokenAddress ||
+      typeof t.tokenAddress !== "string" ||
+      t.tokenAddress.length > 96 ||
+      !t.tradedAt
+    ) {
+      rejected++;
+      continue;
+    }
+    rows.push({
       id: crypto.randomUUID(),
       walletAddress: t.walletAddress,
       chain: t.chain,
@@ -55,13 +66,14 @@ export async function POST(req: NextRequest) {
       walletLabel: typeof t.walletLabel === "string" ? t.walletLabel.slice(0, 120) : null,
       walletAvatar: typeof t.walletAvatar === "string" ? t.walletAvatar : null,
       tradedAt: new Date(t.tradedAt),
-    }));
+    });
+  }
 
   if (rows.length === 0) {
-    return NextResponse.json({ error: "No valid trades found" }, { status: 400 });
+    return NextResponse.json({ error: "No valid trades found", rejected }, { status: 400 });
   }
 
   await db.insert(trade).values(rows).onConflictDoNothing();
 
-  return NextResponse.json({ inserted: rows.length });
+  return NextResponse.json({ inserted: rows.length, rejected, total: trades.length });
 }

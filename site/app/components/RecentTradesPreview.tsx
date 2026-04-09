@@ -40,18 +40,25 @@ function formatUsd(v: number | null): string {
 export default function RecentTradesPreview() {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     fetch("/api/trades?limit=8")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then((data) => {
         setTrades(data.trades || []);
         setLoaded(true);
       })
-      .catch(() => setLoaded(true));
+      .catch(() => {
+        setError(true);
+        setLoaded(true);
+      });
   }, []);
 
-  if (loaded && trades.length === 0) return null;
+  if (loaded && (trades.length === 0 || error)) return null;
 
   return (
     <div className="border-b border-border">

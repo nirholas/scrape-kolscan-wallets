@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { Suspense, useMemo } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import type { UnifiedWallet, GmgnSortField, SortDir, Timeframe } from "@/lib/types";
 import ExportButton from "./ExportButton";
@@ -11,8 +12,9 @@ function truncate(addr: string) {
 }
 
 function formatProfit(v: number) {
-  if (Math.abs(v) >= 1000) return `${v >= 0 ? "+" : ""}${(v / 1000).toFixed(1)}k`;
-  return `${v >= 0 ? "+" : ""}${v.toFixed(2)}`;
+  const abs = Math.abs(v);
+  const str = abs >= 1000 ? `${(abs / 1000).toFixed(1)}k` : abs.toFixed(2);
+  return `${v >= 0 ? "+" : "-"}${str}`;
 }
 
 function SortIcon({ field, current, dir }: { field: string; current: string; dir: SortDir }) {
@@ -34,54 +36,78 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const CATEGORY_COLORS: Record<string, string> = {
   smart_degen: "bg-accent/10 text-accent border-accent/20",
-  kol:          "bg-buy/10 text-buy border-buy/20",
+  kol: "bg-buy/10 text-buy border-buy/20",
   launchpad_smart: "bg-accent/10 text-accent border-accent/20",
   fresh_wallet: "bg-zinc-800 text-zinc-500 border-zinc-700",
-  snipe_bot:    "bg-sell/10 text-sell border-sell/20",
-  live:         "bg-buy/10 text-buy border-buy/20",
+  snipe_bot: "bg-sell/10 text-sell border-sell/20",
+  live: "bg-buy/10 text-buy border-buy/20",
   top_followed: "bg-accent/10 text-accent border-accent/20",
-  top_renamed:  "bg-zinc-800 text-zinc-500 border-zinc-700",
+  top_renamed: "bg-zinc-800 text-zinc-500 border-zinc-700",
 };
 
-export default function UnifiedTable({
+function UnifiedTableInner({
   data,
-  title = "Wallet Leaderboard",
+  title,
   subtitle,
-  showSource = false,
-  showCategory = true,
-  defaultSort = "profit_7d",
+  showSource,
+  showCategory,
+  defaultSort,
   chain,
 }: {
   data: UnifiedWallet[];
-  title?: string;
+  title: string;
   subtitle?: string;
-  showSource?: boolean;
-  showCategory?: boolean;
-  defaultSort?: GmgnSortField;
+  showSource: boolean;
+  showCategory: boolean;
+  defaultSort: GmgnSortField;
   chain?: "sol" | "bsc";
 }) {
-  const [timeframe, setTimeframe] = useState<Timeframe>(7);
-  const [sortField, setSortField] = useState<string>(defaultSort);
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
-  const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  const categories = useMemo(() => {
-    const cats = new Set(data.map((w) => w.category));
-    return ["all", ...Array.from(cats).sort()];
-  }, [data]);
+  const timeframe = (Number(searchParams.get("tf")) as Timeframe) || 7;
+  const sortField = searchParams.get("sort") || defaultSort;
+  const sortDir = (searchParams.get("dir") as SortDir) || "desc";
+  const search = searchParams.get("q") || "";
+  const categoryFilter = searchParams.get("cat") || "all";
+
+  function setParam(key: string, value: string | null) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value != null && value !== "") params.set(key, value);
+    else params.delete(key);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }
+
+  function toggleSort(field: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (sortField === field) {
+      params.set("dir", sortDir === "desc" ? "asc" : "desc");
+    } else {
+      params.set("sort", field);
+      params.set("dir", "desc");
+    }
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }
 
   const profitField = timeframe === 1 ? "profit_1d" : timeframe === 7 ? "profit_7d" : "profit_30d";
   const buysField = timeframe === 1 ? "buys_1d" : timeframe === 7 ? "buys_7d" : "buys_30d";
   const sellsField = timeframe === 1 ? "sells_1d" : timeframe === 7 ? "sells_7d" : "sells_30d";
 
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const w of data) counts[w.category] = (counts[w.category] || 0) + 1;
+    return counts;
+  }, [data]);
+
+  const categories = useMemo(
+    () => ["all", ...Array.from(new Set(data.map((w) => w.category))).sort()],
+    [data]
+  );
+
   const filtered = useMemo(() => {
     let entries = [...data];
-
-    if (categoryFilter !== "all") {
-      entries = entries.filter((w) => w.category === categoryFilter);
-    }
-
+    if (categoryFilter !== "all") entries = entries.filter((w) => w.category === categoryFilter);
     if (search) {
       const q = search.toLowerCase();
       entries = entries.filter(
@@ -91,35 +117,23 @@ export default function UnifiedTable({
           w.tags.some((t) => t.toLowerCase().includes(q))
       );
     }
-
-    entries.sort((a, b) => {
+    return entries.sort((a, b) => {
       if (sortField === "name") {
         return sortDir === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
       }
       if (sortField === "winrate_7d" || sortField === "winrate_30d") {
         const key = timeframe === 30 ? "winrate_30d" : "winrate_7d";
-        const av = a[key];
-        const bv = b[key];
-        return sortDir === "asc" ? av - bv : bv - av;
+        return sortDir === "asc" ? a[key] - b[key] : b[key] - a[key];
       }
-      // Dynamic profit/buys/sells based on timeframe
       let aKey = sortField;
-      let bKey = sortField;
-      if (sortField.startsWith("profit_")) { aKey = profitField; bKey = profitField; }
-      if (sortField.startsWith("buys_")) { aKey = buysField; bKey = buysField; }
-      if (sortField.startsWith("sells_")) { aKey = sellsField; bKey = sellsField; }
-      const av = (a as any)[aKey] ?? 0;
-      const bv = (b as any)[bKey] ?? 0;
+      if (sortField.startsWith("profit_")) aKey = profitField;
+      if (sortField.startsWith("buys_")) aKey = buysField;
+      if (sortField.startsWith("sells_")) aKey = sellsField;
+      const av = (a as unknown as Record<string, number>)[aKey] ?? 0;
+      const bv = (b as unknown as Record<string, number>)[aKey] ?? 0;
       return sortDir === "asc" ? av - bv : bv - av;
     });
-
-    return entries;
   }, [data, sortField, sortDir, search, categoryFilter, timeframe, profitField, buysField, sellsField]);
-
-  function toggleSort(field: string) {
-    if (sortField === field) setSortDir(sortDir === "desc" ? "asc" : "desc");
-    else { setSortField(field); setSortDir("desc"); }
-  }
 
   const timeframes: { label: string; value: Timeframe }[] = [
     { label: "1D", value: 1 },
@@ -127,70 +141,69 @@ export default function UnifiedTable({
     { label: "30D", value: 30 },
   ];
 
-  const thClass = "px-3 py-2 text-left font-mono text-zinc-600 cursor-pointer hover:text-zinc-300 select-none whitespace-nowrap text-[10px] uppercase tracking-wider transition-colors";
-  const explorer = chain === "bsc" ? "https://bscscan.com/address" : "https://solscan.io/account";
+  const thClass =
+    "px-3 py-2 text-left font-mono text-zinc-600 cursor-pointer hover:text-zinc-300 select-none whitespace-nowrap text-[10px] uppercase tracking-wider transition-colors";
+  const explorer =
+    chain === "bsc" ? "https://bscscan.com/address" : "https://solscan.io/account";
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-10 animate-fade-in">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight">{title}</h1>
-          <p className="text-zinc-500 text-sm mt-1">
-            {subtitle || `${filtered.length} wallets`}
-          </p>
+          <p className="text-zinc-500 text-sm mt-1">{subtitle || `${filtered.length} wallets`}</p>
         </div>
-
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Category filter */}
           {showCategory && categories.length > 2 && (
             <select
               value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
+              onChange={(e) => setParam("cat", e.target.value === "all" ? null : e.target.value)}
               className="bg-bg-card border border-border rounded px-2.5 py-1 text-xs text-zinc-400 font-mono outline-none focus:border-zinc-600 appearance-none cursor-pointer"
             >
               {categories.map((c) => (
                 <option key={c} value={c}>
-                  {c === "all" ? "All Categories" : CATEGORY_LABELS[c] || c}
+                  {c === "all"
+                    ? `All (${data.length})`
+                    : `${CATEGORY_LABELS[c] || c} (${categoryCounts[c] || 0})`}
                 </option>
               ))}
             </select>
           )}
-
-          {/* Timeframe */}
           <div className="flex bg-bg-card border border-border rounded p-0.5">
             {timeframes.map((tf) => (
               <button
                 key={tf.value}
-                onClick={() => setTimeframe(tf.value)}
+                onClick={() => setParam("tf", String(tf.value))}
                 className={`px-3 py-1 rounded text-xs font-mono uppercase tracking-wider transition-all duration-150 ${
-                  timeframe === tf.value
-                    ? "bg-zinc-800 text-white"
-                    : "text-zinc-600 hover:text-white"
+                  timeframe === tf.value ? "bg-zinc-800 text-white" : "text-zinc-600 hover:text-white"
                 }`}
               >
                 {tf.label}
               </button>
             ))}
           </div>
-
-          {/* Search */}
           <div className="relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <svg
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
             <input
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => setParam("q", e.target.value)}
               placeholder="Search..."
-            className="bg-bg-card border border-border rounded pl-8 pr-3 py-1 text-xs text-white font-mono placeholder:text-zinc-700 outline-none focus:border-zinc-600 w-full sm:w-40 transition-all"
+              className="bg-bg-card border border-border rounded pl-8 pr-3 py-1 text-xs text-white font-mono placeholder:text-zinc-700 outline-none focus:border-zinc-600 w-full sm:w-40 transition-all"
             />
           </div>
-
-          {/* Export */}
           <ExportButton wallets={filtered} filename={`kolquest-${chain || "sol"}-wallets`} />
         </div>
       </div>
 
-      {/* Table */}
       <div className="bg-bg-card rounded border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -224,25 +237,29 @@ export default function UnifiedTable({
             </thead>
             <tbody>
               {filtered.map((w, i) => {
-                const profit = (w as any)[profitField] || 0;
-                const buys = (w as any)[buysField] || 0;
-                const sells = (w as any)[sellsField] || 0;
+                const profit = (w as unknown as Record<string, number>)[profitField] || 0;
+                const buys = (w as unknown as Record<string, number>)[buysField] || 0;
+                const sells = (w as unknown as Record<string, number>)[sellsField] || 0;
                 const wr = timeframe === 30 ? w.winrate_30d : w.winrate_7d;
                 const catColor = CATEGORY_COLORS[w.category] || "bg-zinc-500/20 text-zinc-400 border-zinc-500/30";
 
                 return (
                   <tr
                     key={w.wallet_address}
-                    className="border-b border-zinc-900 last:border-b-0 hover:bg-bg-card transition-colors group"
+                    className="border-b border-zinc-900 last:border-b-0 hover:bg-bg-hover/30 transition-colors group"
                   >
                     <td className="px-3 py-2 text-zinc-700 text-[11px] font-mono tabular-nums">{i + 1}</td>
-                    <td className="px-3 py-2">
+                    <td className="px-3 py-3">
                       <div className="flex items-center gap-2">
                         {w.avatar && (
                           <img src={w.avatar} alt="" className="w-5 h-5 rounded-full" loading="lazy" />
                         )}
                         <Link
-                          href={w.source === "kolscan" ? `/wallet/${w.wallet_address}` : `/gmgn-wallet/${w.wallet_address}?chain=${w.chain}`}
+                          href={
+                            w.source === "kolscan"
+                              ? `/wallet/${w.wallet_address}`
+                              : `/gmgn-wallet/${w.wallet_address}?chain=${w.chain}`
+                          }
                           className="text-white text-sm font-medium hover:text-buy transition-colors"
                         >
                           {w.name}
@@ -274,25 +291,24 @@ export default function UnifiedTable({
                         {truncate(w.wallet_address)}
                       </a>
                     </td>
-                    <td className={`px-3 py-3 text-sm font-semibold tabular-nums ${
-                      profit > 0 ? "text-buy" : profit < 0 ? "text-sell" : "text-zinc-600"
-                    }`}>
+                    <td className={`px-3 py-3 text-xs font-semibold tabular-nums font-mono ${profit > 0 ? "text-buy" : profit < 0 ? "text-sell" : "text-zinc-600"}`}>
                       {formatProfit(profit)}
                     </td>
-                    <td className="px-3 py-2 text-xs text-buy tabular-nums">{buys}</td>
-                    <td className="px-3 py-2 text-xs text-sell tabular-nums">{sells}</td>
-                    <td className="px-3 py-2 text-xs tabular-nums">
+                    <td className="px-3 py-3 text-xs text-buy tabular-nums">{buys}</td>
+                    <td className="px-3 py-3 text-xs text-sell tabular-nums">{sells}</td>
+                    <td className="px-3 py-3 text-xs tabular-nums">
                       <span className={wr >= 0.5 ? "text-buy" : wr > 0 ? "text-sell" : "text-zinc-600"}>
                         {wr > 0 ? `${(wr * 100).toFixed(1)}%` : "—"}
                       </span>
                     </td>
-                    <td className="px-3 py-2 text-xs">
+                    <td className="px-3 py-3 text-xs">
                       <div className="flex gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
                         {w.twitter && (
                           <a href={w.twitter} target="_blank" rel="noopener noreferrer"
                             className="text-zinc-400 hover:text-white transition-colors text-xs" title="Twitter/X">𝕏</a>
                         )}
-                        <a href={`https://gmgn.ai/${w.chain === "bsc" ? "bsc" : "sol"}/address/${w.wallet_address}?ref=nichxbt`}
+                        <a
+                          href={`https://gmgn.ai/${w.chain === "bsc" ? "bsc" : "sol"}/address/${w.wallet_address}?ref=nichxbt`}
                           target="_blank" rel="noopener noreferrer"
                           className="text-zinc-600 hover:text-white transition-colors text-xs font-mono" title="GMGN">G</a>
                       </div>
@@ -312,5 +328,44 @@ export default function UnifiedTable({
         </div>
       </div>
     </div>
+  );
+}
+
+export default function UnifiedTable({
+  data,
+  title = "Wallet Leaderboard",
+  subtitle,
+  showSource = false,
+  showCategory = true,
+  defaultSort = "profit_7d",
+  chain,
+}: {
+  data: UnifiedWallet[];
+  title?: string;
+  subtitle?: string;
+  showSource?: boolean;
+  showCategory?: boolean;
+  defaultSort?: GmgnSortField;
+  chain?: "sol" | "bsc";
+}) {
+  return (
+    <Suspense
+      fallback={
+        <div className="max-w-7xl mx-auto px-6 py-10">
+          <div className="h-16 w-64 bg-zinc-900 rounded animate-pulse mb-6" />
+          <div className="h-96 bg-bg-card rounded border border-border animate-pulse" />
+        </div>
+      }
+    >
+      <UnifiedTableInner
+        data={data}
+        title={title}
+        subtitle={subtitle}
+        showSource={showSource}
+        showCategory={showCategory}
+        defaultSort={defaultSort}
+        chain={chain}
+      />
+    </Suspense>
   );
 }

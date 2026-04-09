@@ -4,8 +4,12 @@ import { and, eq, ne } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/drizzle/db";
 import { user } from "@/drizzle/db/schema";
+import { checkOrigin } from "@/lib/assert-origin";
 
-export async function POST() {
+export async function POST(request: Request) {
+  const originErr = checkOrigin(request);
+  if (originErr) return originErr;
+
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user?.id) {
     return NextResponse.json({ ok: false }, { status: 401 });

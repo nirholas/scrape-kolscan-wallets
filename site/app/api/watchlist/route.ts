@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { db } from "@/drizzle/db";
 import { watchlist } from "@/drizzle/db/schema";
+import { checkOrigin } from "@/lib/assert-origin";
 
 // GET — list user's watchlisted wallets
 export async function GET() {
@@ -30,13 +31,21 @@ export async function GET() {
 
 // POST — add a wallet to watchlist
 export async function POST(req: NextRequest) {
+  const originErr = checkOrigin(req);
+  if (originErr) return originErr;
+
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
-  const { walletAddress: addr, chain, label, groupName } = body;
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+  const { walletAddress: addr, chain, label, groupName } = body as Record<string, unknown>;
 
   if (!addr || !chain) {
     return NextResponse.json({ error: "walletAddress and chain are required" }, { status: 400 });
@@ -46,7 +55,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid wallet address" }, { status: 400 });
   }
 
-  if (!["sol", "bsc"].includes(chain)) {
+  if (!["sol", "bsc"].includes(chain as string)) {
     return NextResponse.json({ error: "Chain must be sol or bsc" }, { status: 400 });
   }
 
@@ -55,7 +64,7 @@ export async function POST(req: NextRequest) {
     .values({
       userId: session.user.id,
       walletAddress: addr,
-      chain,
+      chain: chain as string,
       label: typeof label === "string" ? label.slice(0, 120) : null,
       groupName: typeof groupName === "string" ? groupName.slice(0, 60) : null,
     })
@@ -66,13 +75,21 @@ export async function POST(req: NextRequest) {
 
 // PATCH — update wallet label or group
 export async function PATCH(req: NextRequest) {
+  const originErr = checkOrigin(req);
+  if (originErr) return originErr;
+
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
-  const { walletAddress: addr, label, groupName } = body;
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+  const { walletAddress: addr, label, groupName } = body as Record<string, unknown>;
 
   if (!addr || typeof addr !== "string") {
     return NextResponse.json({ error: "walletAddress is required" }, { status: 400 });
@@ -101,13 +118,21 @@ export async function PATCH(req: NextRequest) {
 
 // DELETE — remove a wallet from watchlist
 export async function DELETE(req: NextRequest) {
+  const originErr = checkOrigin(req);
+  if (originErr) return originErr;
+
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
-  const { walletAddress: addr } = body;
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+  const { walletAddress: addr } = body as Record<string, unknown>;
 
   if (!addr || typeof addr !== "string") {
     return NextResponse.json({ error: "walletAddress is required" }, { status: 400 });

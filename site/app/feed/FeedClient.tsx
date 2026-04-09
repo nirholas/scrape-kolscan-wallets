@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
+import { timeAgo, shortAddr, formatUsd } from "@/lib/format";
 
 interface Trade {
   id: string;
@@ -25,70 +27,45 @@ interface Trade {
   tradedAt: string;
 }
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const secs = Math.floor(diff / 1000);
-  if (secs < 60) return `${secs}s ago`;
-  const mins = Math.floor(secs / 60);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
+function FeedInner() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-function shortAddr(addr: string): string {
-  return addr.slice(0, 4) + "…" + addr.slice(-4);
-}
+  const chain = searchParams.get("chain");
+  const type = searchParams.get("type");
 
-function formatUsd(v: number | null): string {
-  if (v == null) return "—";
-  if (Math.abs(v) >= 1_000_000) return `$${(v / 1_000_000).toFixed(2)}M`;
-  if (Math.abs(v) >= 1_000) return `$${(v / 1_000).toFixed(1)}k`;
-  return `$${v.toFixed(2)}`;
-}
-
-export default function FeedClient() {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
-  const [chain, setChain] = useState<string | null>(null);
-  const [type, setType] = useState<string | null>(null);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [newCount, setNewCount] = useState(0);
+  const pendingRef = useRef<Trade[]>([]);
 
-  const fetchTrades = useCallback(
-    async (append = false) => {
-      const params = new URLSearchParams();
-      if (chain) params.set("chain", chain);
-      if (type) params.set("type", type);
-      if (append && cursor) params.set("cursor", cursor);
-      params.set("limit", "50");
+  function setParam(key: string, value: string | null) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value != null) params.set(key, value);
+    else params.delete(key);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }
 
-      const res = await fetch(`/api/trades?${params}`);
-      const data = await res.json();
-
-      if (append) {
-        setTrades((prev) => [...prev, ...data.trades]);
-      } else {
-        setTrades(data.trades);
-      }
-      setCursor(data.nextCursor);
-      setHasMore(!!data.nextCursor);
-      setLoading(false);
-    },
-    [chain, type, cursor],
-  );
+  function buildQuery(extra?: Record<string, string>) {
+    const params = new URLSearchParams();
+    if (chain) params.set("chain", chain);
+    if (type) params.set("type", type);
+    params.set("limit", "50");
+    if (extra) Object.entries(extra).forEach(([k, v]) => params.set(k, v));
+    return params.toString();
+  }
 
   // Initial load + filter changes
   useEffect(() => {
     setLoading(true);
     setCursor(null);
-    const params = new URLSearchParams();
-    if (chain) params.set("chain", chain);
-    if (type) params.set("type", type);
-    params.set("limit", "50");
-
-    fetch(`/api/trades?${params}`)
+    setNewCount(0);
+    pendingRef.current = [];
+    fetch(`/api/trades?${buildQuery()}`)
       .then((r) => r.json())
       .then((data) => {
         setTrades(data.trades);
@@ -96,51 +73,77 @@ export default function FeedClient() {
         setHasMore(!!data.nextCursor);
         setLoading(false);
       });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chain, type]);
 
-  // Auto-refresh every 15 seconds
+  // Auto-refresh: fetch silently, show banner instead of replacing
   useEffect(() => {
     if (!autoRefresh) return;
     const interval = setInterval(() => {
-      const params = new URLSearchParams();
-      if (chain) params.set("chain", chain);
-      if (type) params.set("type", type);
-      params.set("limit", "50");
-
-      fetch(`/api/trades?${params}`)
+      fetch(`/api/trades?${buildQuery()}`)
         .then((r) => r.json())
         .then((data) => {
-          setTrades(data.trades);
-          setCursor(data.nextCursor);
-          setHasMore(!!data.nextCursor);
+          const fresh: Trade[] = data.trades;
+          if (fresh.length === 0) return;
+          setTrades((current) => {
+            if (current.length === 0 || fresh[0]?.id === current[0]?.id) return current;
+            const knownIds = new Set(current.map((t) => t.id));
+            const count = fresh.filter((t) => !knownIds.has(t.id)).length;
+            if (count > 0) {
+              pendingRef.current = fresh;
+              setNewCount(count);
+            }
+            return current;
+          });
         });
     }, 15_000);
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRefresh, chain, type]);
 
-  const explorerUrl = (chain: string, txHash: string) => {
-    if (chain === "bsc") return `https://bscscan.com/tx/${txHash}`;
-    return `https://solscan.io/tx/${txHash}`;
-  };
+  function applyPending() {
+    setTrades(pendingRef.current);
+    pendingRef.current = [];
+    setNewCount(0);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
-  const walletHref = (chain: string, addr: string) => {
-    if (chain === "bsc") return `/gmgn-wallet/${addr}?chain=bsc`;
-    return `/wallet/${addr}`;
-  };
+  function loadMore() {
+    if (!cursor) return;
+    fetch(`/api/trades?${buildQuery({ cursor })}`)
+      .then((r) => r.json())
+      .then((data) => {
+        setTrades((prev) => [...prev, ...data.trades]);
+        setCursor(data.nextCursor);
+        setHasMore(!!data.nextCursor);
+      });
+  }
+
+  const explorerUrl = (c: string, txHash: string) =>
+    c === "bsc" ? `https://bscscan.com/tx/${txHash}` : `https://solscan.io/tx/${txHash}`;
+
+  const walletHref = (c: string, addr: string) =>
+    c === "bsc" ? `/gmgn-wallet/${addr}?chain=bsc` : `/wallet/${addr}`;
 
   return (
     <div className="animate-fade-in">
+      {/* New trades banner */}
+      {newCount > 0 && (
+        <button
+          onClick={applyPending}
+          className="sticky top-0 z-10 w-full py-2 bg-buy/10 border-b border-buy/20 text-buy text-xs font-mono font-medium text-center hover:bg-buy/20 transition-colors"
+        >
+          ↑ {newCount} new trade{newCount !== 1 ? "s" : ""} — click to load
+        </button>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-white">Live Trade Feed</h1>
-          <p className="text-sm text-zinc-500 mt-1">
-            Real-time buys & sells from tracked wallets
-          </p>
+          <p className="text-sm text-zinc-500 mt-1">Real-time buys &amp; sells from tracked wallets</p>
         </div>
-
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Chain filter */}
           {[
             { label: "All", value: null },
             { label: "SOL", value: "sol" },
@@ -148,20 +151,17 @@ export default function FeedClient() {
           ].map((opt) => (
             <button
               key={opt.label}
-              onClick={() => setChain(opt.value)}
-              className={`px-2.5 py-1 rounded text-[11px] font-mono uppercase tracking-wider transition-all ${
+              onClick={() => setParam("chain", opt.value)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                 chain === opt.value
-                  ? "bg-zinc-800 text-white border border-zinc-700"
-                  : "bg-transparent border border-border text-zinc-600 hover:text-white"
+                  ? "bg-white text-black"
+                  : "bg-bg-card border border-border text-zinc-400 hover:text-white"
               }`}
             >
               {opt.label}
             </button>
           ))}
-
           <div className="w-px h-5 bg-border mx-1" />
-
-          {/* Type filter */}
           {[
             { label: "All", value: null },
             { label: "Buys", value: "buy" },
@@ -169,35 +169,33 @@ export default function FeedClient() {
           ].map((opt) => (
             <button
               key={opt.label}
-              onClick={() => setType(opt.value)}
-              className={`px-2.5 py-1 rounded text-[11px] font-mono uppercase tracking-wider transition-all ${
+              onClick={() => setParam("type", opt.value)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                 type === opt.value
-                  ? "bg-zinc-800 text-white border border-zinc-700"
-                  : "bg-transparent border border-border text-zinc-600 hover:text-white"
+                  ? "bg-white text-black"
+                  : "bg-bg-card border border-border text-zinc-400 hover:text-white"
               }`}
             >
               {opt.label}
             </button>
           ))}
-
           <div className="w-px h-5 bg-border mx-1" />
-
-          {/* Auto-refresh toggle */}
           <button
             onClick={() => setAutoRefresh(!autoRefresh)}
-            className={`px-2.5 py-1 rounded text-[11px] font-mono uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
               autoRefresh
-                ? "bg-buy/10 border border-buy/20 text-buy"
-                : "border border-border text-zinc-600"
+                ? "bg-buy/10 border border-buy/30 text-buy"
+                : "bg-bg-card border border-border text-zinc-500"
             }`}
           >
-            <span className={`w-1.5 h-1.5 rounded-full ${autoRefresh ? "bg-buy animate-pulse" : "bg-zinc-600"}`} />
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${autoRefresh ? "bg-buy animate-pulse" : "bg-zinc-600"}`}
+            />
             Live
           </button>
         </div>
       </div>
 
-      {/* Trade list */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="w-6 h-6 border-2 border-zinc-700 border-t-white rounded-full animate-spin" />
@@ -211,102 +209,77 @@ export default function FeedClient() {
         </div>
       ) : (
         <>
-          <div className="border border-border rounded overflow-hidden">
+          <div className="border border-border rounded-xl overflow-hidden">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border bg-bg-card/50">
-                  <th className="px-4 py-2 text-left text-[10px] font-mono text-zinc-600 uppercase tracking-wider">
-                    Time
-                  </th>
-                  <th className="px-4 py-2 text-left text-[10px] font-mono text-zinc-600 uppercase tracking-wider">
-                    Type
-                  </th>
-                  <th className="px-4 py-2 text-left text-[10px] font-mono text-zinc-600 uppercase tracking-wider">
-                    Wallet
-                  </th>
-                  <th className="px-4 py-2 text-left text-[10px] font-mono text-zinc-600 uppercase tracking-wider">
-                    Token
-                  </th>
-                  <th className="px-4 py-2 text-right text-[10px] font-mono text-zinc-600 uppercase tracking-wider">
-                    Amount
-                  </th>
-                  <th className="px-4 py-2 text-right text-[10px] font-mono text-zinc-600 uppercase tracking-wider">
-                    Profit
-                  </th>
-                  <th className="px-4 py-2 text-left text-[10px] font-mono text-zinc-600 uppercase tracking-wider">
-                    Chain
-                  </th>
-                  <th className="px-4 py-2 text-right text-[10px] font-mono text-zinc-600 uppercase tracking-wider">
-                    Tx
-                  </th>
+                  {[
+                    { label: "Time", right: false },
+                    { label: "Type", right: false },
+                    { label: "Wallet", right: false },
+                    { label: "Token", right: false },
+                    { label: "Amount", right: true },
+                    { label: "Profit", right: true },
+                    { label: "Chain", right: false },
+                    { label: "Tx", right: true },
+                  ].map(({ label, right }) => (
+                    <th
+                      key={label}
+                      className={`px-4 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider ${right ? "text-right" : "text-left"}`}
+                    >
+                      {label}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {trades.map((t) => (
                   <tr
                     key={t.id}
-                    className="border-b border-zinc-900 last:border-b-0 hover:bg-bg-card transition-colors"
+                    className="border-b border-border/50 last:border-b-0 hover:bg-bg-card/60 transition-colors"
                   >
-                    <td className="px-4 py-2 text-xs text-zinc-500 tabular-nums whitespace-nowrap">
+                    <td className="px-4 py-3 text-xs text-zinc-500 tabular-nums whitespace-nowrap">
                       {timeAgo(t.tradedAt)}
                     </td>
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-3">
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold uppercase ${
-                          t.type === "buy"
-                            ? "bg-buy/10 text-buy"
-                            : "bg-sell/10 text-sell"
+                          t.type === "buy" ? "bg-buy/10 text-buy" : "bg-sell/10 text-sell"
                         }`}
                       >
                         {t.type}
                       </span>
                     </td>
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         {t.walletAvatar ? (
                           <img src={t.walletAvatar} alt="" className="w-5 h-5 rounded-full flex-shrink-0" loading="lazy" />
                         ) : (
-                          <div className="w-5 h-5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[9px] font-mono font-bold text-zinc-500 flex-shrink-0">
+                          <div className="w-5 h-5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[9px] font-bold text-zinc-400 flex-shrink-0">
                             {(t.walletLabel || t.walletAddress).charAt(0).toUpperCase()}
                           </div>
                         )}
-                        <Link
-                          href={walletHref(t.chain, t.walletAddress)}
-                          className="text-sm text-white hover:text-accent transition-colors"
-                        >
+                        <Link href={walletHref(t.chain, t.walletAddress)} className="text-sm text-white hover:text-accent transition-colors">
                           {t.walletLabel || shortAddr(t.walletAddress)}
                         </Link>
                       </div>
                     </td>
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        {t.tokenLogo && (
-                          <img src={t.tokenLogo} alt="" className="w-5 h-5 rounded-full" />
-                        )}
+                        {t.tokenLogo && <img src={t.tokenLogo} alt="" className="w-5 h-5 rounded-full" />}
                         <div>
-                          <Link
-                            href={`/token/${t.chain}/${t.tokenAddress}`}
-                            className="text-sm text-white font-medium hover:text-accent transition-colors"
-                          >
+                          <span className="text-sm text-white font-medium">
                             {t.tokenSymbol || shortAddr(t.tokenAddress)}
-                          </Link>
-                          {t.tokenName && (
-                            <span className="text-[11px] text-zinc-600 ml-1.5">
-                              {t.tokenName}
-                            </span>
-                          )}
-                          {t.tokenLaunchpad && (
-                            <span className="text-[9px] text-zinc-600 ml-1.5">
-                              via {t.tokenLaunchpad}
-                            </span>
-                          )}
+                          </span>
+                          {t.tokenName && <span className="text-[11px] text-zinc-600 ml-1.5">{t.tokenName}</span>}
+                          {t.tokenLaunchpad && <span className="text-[9px] text-zinc-600 ml-1.5">via {t.tokenLaunchpad}</span>}
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-2 text-right text-sm tabular-nums font-medium text-zinc-300">
+                    <td className="px-4 py-3 text-right text-sm tabular-nums font-medium text-zinc-300">
                       {formatUsd(t.amountUsd)}
                     </td>
-                    <td className="px-4 py-2 text-right">
+                    <td className="px-4 py-3 text-right">
                       {t.realizedProfit != null ? (
                         <span className={`text-sm tabular-nums font-medium ${t.realizedProfit > 0 ? "text-buy" : "text-sell"}`}>
                           {t.realizedProfit > 0 ? "+" : ""}{formatUsd(t.realizedProfit)}
@@ -315,19 +288,15 @@ export default function FeedClient() {
                         <span className="text-xs text-zinc-700">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-3">
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500 border border-zinc-700 uppercase">
                         {t.chain}
                       </span>
                     </td>
-                    <td className="px-4 py-2 text-right">
+                    <td className="px-4 py-3 text-right">
                       {t.txHash ? (
-                        <a
-                          href={explorerUrl(t.chain, t.txHash)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-zinc-500 hover:text-accent transition-colors"
-                        >
+                        <a href={explorerUrl(t.chain, t.txHash)} target="_blank" rel="noopener noreferrer"
+                          className="text-xs text-zinc-500 hover:text-accent transition-colors">
                           {shortAddr(t.txHash)}↗
                         </a>
                       ) : (
@@ -339,12 +308,11 @@ export default function FeedClient() {
               </tbody>
             </table>
           </div>
-
           {hasMore && (
             <div className="flex justify-center mt-6">
               <button
-                onClick={() => fetchTrades(true)}
-                className="px-4 py-1.5 bg-bg-card border border-border rounded text-xs font-mono text-zinc-500 hover:text-white hover:border-zinc-600 transition-all"
+                onClick={loadMore}
+                className="px-6 py-2.5 bg-bg-card border border-border rounded-xl text-sm text-zinc-400 hover:text-white hover:border-zinc-600 transition-all"
               >
                 Load more
               </button>
@@ -353,5 +321,20 @@ export default function FeedClient() {
         </>
       )}
     </div>
+  );
+}
+
+export default function FeedClient() {
+  return (
+    <Suspense
+      fallback={
+        <div className="animate-fade-in">
+          <div className="h-16 w-64 bg-zinc-900 rounded animate-pulse mb-6" />
+          <div className="h-96 bg-bg-card rounded-xl border border-border animate-pulse" />
+        </div>
+      }
+    >
+      <FeedInner />
+    </Suspense>
   );
 }

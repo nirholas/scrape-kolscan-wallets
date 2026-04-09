@@ -89,9 +89,11 @@ export interface UnifiedWallet {
   sells_1d: number;
   sells_7d: number;
   sells_30d: number;
+  winrate_1d: number;
   winrate_7d: number;
   winrate_30d: number;
   avatar: string | null;
+  sparkline?: number[]; // 7-day daily profit values (GMGN wallets only)
 }
 
 // X/Twitter profile data (scraped via xactions)

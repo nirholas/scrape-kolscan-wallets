@@ -12,7 +12,7 @@ type SessionUser = {
 type Submission = {
   id: string;
   walletAddress: string;
-  chain: "solana" | "bsc";
+  chain: "sol" | "bsc";
   label: string;
   notes: string | null;
   twitter: string | null;
@@ -24,7 +24,7 @@ type Submission = {
 export default function SubmitWalletPage() {
   const { data, isPending, refetch } = useSession();
   const [walletAddress, setWalletAddress] = useState("");
-  const [chain, setChain] = useState<"solana" | "bsc">("solana");
+  const [chain, setChain] = useState<"sol" | "bsc">("sol");
   const [label, setLabel] = useState("");
   const [notes, setNotes] = useState("");
   const [twitter, setTwitter] = useState("");
@@ -122,9 +122,9 @@ export default function SubmitWalletPage() {
           <select
             className="bg-black border border-border rounded-lg px-3 py-2 text-sm text-white"
             value={chain}
-            onChange={(e) => setChain(e.target.value as "solana" | "bsc")}
+            onChange={(e) => setChain(e.target.value as "sol" | "bsc")}
           >
-            <option value="solana">Solana</option>
+            <option value="sol">Solana</option>
             <option value="bsc">BSC</option>
           </select>
           <input

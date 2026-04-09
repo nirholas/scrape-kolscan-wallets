@@ -190,6 +190,7 @@ function kolscanToUnified(entries: KolEntry[]): UnifiedWallet[] {
       sells_1d: d1?.losses || 0,
       sells_7d: d7?.losses || 0,
       sells_30d: d30?.losses || 0,
+      winrate_1d: d1 ? (d1.wins + d1.losses > 0 ? d1.wins / (d1.wins + d1.losses) : 0) : 0,
       winrate_7d: d7 ? (d7.wins + d7.losses > 0 ? d7.wins / (d7.wins + d7.losses) : 0) : 0,
       winrate_30d: d30 ? (d30.wins + d30.losses > 0 ? d30.wins / (d30.wins + d30.losses) : 0) : 0,
       avatar: null,
@@ -216,9 +217,11 @@ function gmgnToUnified(wallets: GmgnWallet[]): UnifiedWallet[] {
     sells_1d: w.sell_1d,
     sells_7d: w.sell_7d,
     sells_30d: w.sell_30d,
+    winrate_1d: w.winrate_1d,
     winrate_7d: w.winrate_7d,
     winrate_30d: w.winrate_30d,
     avatar: w.avatar,
+    sparkline: w.daily_profit_7d.length > 0 ? w.daily_profit_7d.map((d) => d.profit) : undefined,
   }));
 }
 

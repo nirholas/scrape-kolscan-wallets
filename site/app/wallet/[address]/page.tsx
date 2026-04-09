@@ -106,7 +106,7 @@ export default async function WalletPage({ params }: { params: { address: string
         {xProfile?.avatar ? (
           <img src={xProfile.avatar} alt="" className="w-10 h-10 rounded-full flex-shrink-0" />
         ) : (
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-buy to-emerald-600 flex items-center justify-center text-base font-bold text-white flex-shrink-0">
+          <div className="w-10 h-10 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-base font-mono font-bold text-zinc-400 flex-shrink-0">
             {name.charAt(0).toUpperCase()}
           </div>
         )}
@@ -114,11 +114,11 @@ export default async function WalletPage({ params }: { params: { address: string
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-white font-bold text-base">{name}</span>
-            {xProfile?.verified && <span className="text-blue-400 text-xs">✓</span>}
+            {xProfile?.verified && <span className="text-accent text-xs">✓</span>}
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-buy/15 text-buy border border-buy/25">KolScan</span>
             {gmgnExists && (
               <Link href={`/gmgn-wallet/${params.address}`}
-                className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/15 text-yellow-400 border border-yellow-500/25 hover:bg-yellow-500/25 transition-colors"
+                className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-500 border border-zinc-700 hover:text-white transition-colors"
                 title="Also tracked by GMGN — click to view">
                 GMGN ↗
               </Link>
@@ -129,7 +129,7 @@ export default async function WalletPage({ params }: { params: { address: string
             )}
             {telegram && (
               <a href={telegram} target="_blank" rel="noopener noreferrer"
-                className="text-zinc-500 hover:text-blue-400 transition-colors text-sm leading-none" title="Telegram">✈</a>
+                className="text-zinc-500 hover:text-accent transition-colors text-sm leading-none" title="Telegram">✈</a>
             )}
             {xProfile && (
               <span className="text-zinc-600 text-xs">
@@ -153,7 +153,7 @@ export default async function WalletPage({ params }: { params: { address: string
         <div className="flex gap-1.5 flex-shrink-0 flex-wrap justify-end">
           {quickLinks.map((link) => (
             <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer"
-              className="bg-bg-card border border-border rounded-lg px-2.5 py-1 text-xs text-zinc-500 hover:text-white hover:border-zinc-600 transition-all">
+              className="bg-bg-card border border-border rounded px-2 py-1 text-[11px] font-mono text-zinc-600 hover:text-white hover:border-zinc-600 transition-all">
               {link.label}
             </a>
           ))}
@@ -164,7 +164,7 @@ export default async function WalletPage({ params }: { params: { address: string
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
 
         {/* Left: Total Profit + Rankings */}
-        <div className="bg-bg-card border border-border rounded-xl p-4">
+        <div className="bg-bg-card border border-border rounded p-4">
           <div className="text-zinc-500 text-[11px] uppercase tracking-wider mb-2">Total Profit · SOL</div>
           <div className={`text-3xl font-bold tabular-nums leading-none mb-0.5 ${profitColor(totalProfit)}`}>
             {totalProfit >= 0 ? "+" : ""}{totalProfit.toFixed(2)}
@@ -206,11 +206,11 @@ export default async function WalletPage({ params }: { params: { address: string
         </div>
 
         {/* Center: Win Rate + Per-timeframe */}
-        <div className="bg-bg-card border border-border rounded-xl p-4">
+        <div className="bg-bg-card border border-border rounded p-4">
           <div className="text-zinc-500 text-[11px] uppercase tracking-wider mb-2">
             Win Rate
             {lowSample && (
-              <span className="ml-2 text-yellow-500/80 normal-case" title="Low sample size — win rate may not be reliable">
+              <span className="ml-2 text-zinc-600 normal-case" title="Low sample size — win rate may not be reliable">
                 ⚠ {totalTrades} trades
               </span>
             )}
@@ -254,12 +254,12 @@ export default async function WalletPage({ params }: { params: { address: string
         </div>
 
         {/* Right: X Profile or Rankings detail */}
-        <div className="bg-bg-card border border-border rounded-xl p-4 sm:col-span-2 lg:col-span-1">
+        <div className="bg-bg-card border border-border rounded p-4 sm:col-span-2 lg:col-span-1 overflow-hidden">
           {xProfile ? (
             <>
               <div className="text-zinc-500 text-[11px] uppercase tracking-wider mb-3">X / Twitter</div>
               {xProfile.header && (
-                <div className="rounded-lg overflow-hidden mb-3 -mx-1">
+                <div className="overflow-hidden mb-3 -mx-4 -mt-4">
                   <img src={xProfile.header} alt="" className="w-full h-20 object-cover" />
                 </div>
               )}
@@ -296,14 +296,14 @@ export default async function WalletPage({ params }: { params: { address: string
                 {ranks.map((r) => {
                   const pct = r.total > 0 ? (r.rank / r.total) * 100 : 0;
                   return (
-                    <div key={r.timeframe} className="bg-bg-elevated/30 rounded-lg p-3">
+                    <div key={r.timeframe} className="bg-bg-secondary rounded p-3">
                       <div className="flex justify-between items-baseline mb-1.5">
                         <span className="text-white text-xs font-medium">{timeframeLabel(r.timeframe)}</span>
                         <span className="text-zinc-500 text-[11px] tabular-nums">#{r.rank}/{r.total}</span>
                       </div>
                       <div className="w-full bg-bg-primary rounded-full h-1 mb-2">
                         <div
-                          className={`h-1 rounded-full transition-all ${r.rank <= 10 ? "bg-buy" : r.rank <= 25 ? "bg-yellow-500" : "bg-zinc-600"}`}
+                          className={`h-1 rounded-full transition-all ${r.rank <= 10 ? "bg-buy" : r.rank <= 25 ? "bg-accent" : "bg-zinc-800"}`}
                           style={{ width: `${Math.max(100 - pct, 5)}%` }}
                         />
                       </div>
@@ -321,7 +321,7 @@ export default async function WalletPage({ params }: { params: { address: string
       </div>
 
       {/* ── PnL Calendar ── */}
-      <div className="bg-bg-card border border-border rounded-xl p-4 mb-4">
+      <div className="bg-bg-card border border-border rounded p-4 mb-4">
         <div className="text-zinc-500 text-[11px] uppercase tracking-wider mb-3">PnL Calendar</div>
         <PnlCalendar entries={entries} walletAddress={params.address} walletName={name} />
       </div>
@@ -336,7 +336,7 @@ export default async function WalletPage({ params }: { params: { address: string
               const wRate = wTotal > 0 ? ((w.wins / wTotal) * 100).toFixed(0) : "0";
               return (
                 <Link key={w.wallet_address} href={`/wallet/${w.wallet_address}`}
-                  className="group bg-bg-card border border-border rounded-xl p-3 hover:border-buy/30 transition-all">
+                  className="group bg-bg-card border border-border rounded p-3 hover:border-zinc-700 transition-all">
                   <div className="text-white text-xs font-medium truncate group-hover:text-buy transition-colors mb-1">{w.name}</div>
                   <div className={`text-xs font-bold tabular-nums ${profitColor(w.profit)}`}>{fmt(w.profit)}</div>
                   <div className="text-[10px] text-zinc-600 tabular-nums mt-0.5">
@@ -351,7 +351,7 @@ export default async function WalletPage({ params }: { params: { address: string
       )}
 
       {/* ── Full Address ── */}
-      <div className="border border-border/50 rounded-xl p-3 text-center">
+      <div className="border border-border rounded p-3 text-center">
         <span className="text-zinc-600 text-[11px] uppercase tracking-wider">Full Address · </span>
         <a href={`https://solscan.io/account/${params.address}`} target="_blank" rel="noopener noreferrer"
           className="font-mono text-xs text-buy hover:underline break-all">{params.address}</a>

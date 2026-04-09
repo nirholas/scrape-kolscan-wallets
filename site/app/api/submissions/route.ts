@@ -6,6 +6,7 @@ import { db } from "@/drizzle/db";
 import { user, walletSubmission } from "@/drizzle/db/schema";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { submissionSchema } from "@/lib/validation";
+import { checkOrigin } from "@/lib/assert-origin";
 
 export async function GET() {
   const rows = await db
@@ -31,12 +32,15 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const originErr = checkOrigin(request);
+  if (originErr) return originErr;
+
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }
 
-  const rl = checkRateLimit(`submit:${session.user.id}`, 12, 60 * 60 * 1000);
+  const rl = await checkRateLimit(`submit:${session.user.id}`, 12, 60 * 60 * 1000);
   if (!rl.success) {
     return NextResponse.json(
       { error: `Rate limit exceeded. Try again after ${rl.reset}.` },

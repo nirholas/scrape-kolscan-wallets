@@ -6,3 +6,13 @@ bun.lock
 !.env.example
 .vercel
 .env*.local
+
+# Large scraped data files
+solwallets.json
+bscwallets.json
+output/kolscan-leaderboard.json
+output/gmgn-import.json
+output/axiom-smart-wallets.json
+output/axiom-wallets.txt
+output/wallets.txt
+output/axiom-debug.png

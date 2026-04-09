@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
+import { timeAgo, shortAddr, formatUsd } from "@/lib/format";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -49,28 +51,6 @@ interface Props {
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const secs = Math.floor(diff / 1000);
-  if (secs < 60) return `${secs}s`;
-  const mins = Math.floor(secs / 60);
-  if (mins < 60) return `${mins}m`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h`;
-  return `${Math.floor(hrs / 24)}d`;
-}
-
-function shortAddr(addr: string): string {
-  return addr.slice(0, 4) + "…" + addr.slice(-4);
-}
-
-function formatUsd(v: number | null): string {
-  if (v == null) return "—";
-  if (Math.abs(v) >= 1_000_000) return `$${(v / 1_000_000).toFixed(2)}M`;
-  if (Math.abs(v) >= 1_000) return `$${(v / 1_000).toFixed(1)}k`;
-  return `$${v.toFixed(2)}`;
-}
-
 function formatPnl(v: number | null): string {
   if (v == null) return "—";
   const sign = v > 0 ? "+" : "";
@@ -87,14 +67,14 @@ function pnlColor(v: number | null): string {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  kol: "bg-purple-500/15 text-purple-400 border-purple-500/30",
-  smart_degen: "bg-amber-500/15 text-amber-400 border-amber-500/30",
-  snipe_bot: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30",
-  fresh_wallet: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-  launchpad_smart: "bg-blue-500/15 text-blue-400 border-blue-500/30",
-  top_dev: "bg-pink-500/15 text-pink-400 border-pink-500/30",
-  live: "bg-green-500/15 text-green-400 border-green-500/30",
-  kolscan: "bg-orange-500/15 text-orange-400 border-orange-500/30",
+  kol:            "bg-accent/10 text-accent border-accent/20",
+  smart_degen:    "bg-buy/10 text-buy border-buy/20",
+  snipe_bot:      "bg-sell/10 text-sell border-sell/20",
+  fresh_wallet:   "bg-zinc-800 text-zinc-500 border-zinc-700",
+  launchpad_smart:"bg-accent/10 text-accent border-accent/20",
+  top_dev:        "bg-zinc-800 text-zinc-500 border-zinc-700",
+  live:           "bg-buy/10 text-buy border-buy/20",
+  kolscan:        "bg-accent/10 text-accent border-accent/20",
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -207,7 +187,7 @@ function WalletCard({ group }: { group: WalletGroup }) {
       : `https://solscan.io/tx/${txHash}`;
 
   return (
-    <div className="bg-bg-card border border-border rounded-xl overflow-hidden hover:border-border-light transition-colors group">
+    <div className="bg-bg-card border border-border rounded overflow-hidden hover:border-zinc-700 transition-colors group">
       {/* Header */}
       <div className="px-4 py-3 flex items-center justify-between border-b border-border/50">
         <div className="flex items-center gap-2.5 min-w-0">
@@ -429,11 +409,24 @@ function WalletSidebar({
 /*  Main Monitor Component                                            */
 /* ------------------------------------------------------------------ */
 
-export default function MonitorClient({ walletMap }: Props) {
+function MonitorInner({ walletMap }: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const tab = (searchParams.get("tab") as TabFilter) || "all";
+  const chain = searchParams.get("chain");
+
+  function setParam(key: string, value: string | null) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value != null) params.set(key, value);
+    else params.delete(key);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }
+
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<TabFilter>("all");
-  const [chain, setChain] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
@@ -442,10 +435,17 @@ export default function MonitorClient({ walletMap }: Props) {
     if (chain) params.set("chain", chain);
     params.set("limit", "200");
 
-    const res = await fetch(`/api/trades?${params}`);
-    const data = await res.json();
-    setTrades(data.trades);
-    setLoading(false);
+    try {
+      const res = await fetch(`/api/trades?${params}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setTrades(data.trades);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load trades");
+    } finally {
+      setLoading(false);
+    }
   }, [chain]);
 
   // Initial load + filter changes
@@ -488,7 +488,7 @@ export default function MonitorClient({ walletMap }: Props) {
             {/* Sidebar toggle */}
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg bg-bg-card border border-border text-zinc-500 hover:text-white transition-colors"
+              className="hidden lg:flex items-center justify-center w-7 h-7 rounded bg-bg-card border border-border text-zinc-600 hover:text-white transition-colors"
               title="Toggle sidebar"
             >
               <svg
@@ -503,15 +503,15 @@ export default function MonitorClient({ walletMap }: Props) {
             </button>
 
             {/* Category tabs */}
-            <div className="flex items-center bg-bg-card rounded-lg border border-border p-0.5">
+            <div className="flex items-center bg-bg-card rounded border border-border p-0.5">
               {TABS.map((t) => (
                 <button
                   key={t.value}
-                  onClick={() => setTab(t.value)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                  onClick={() => setParam("tab", t.value === "all" ? null : t.value)}
+                  className={`px-2.5 py-1 rounded text-[11px] font-mono uppercase tracking-wider transition-all ${
                     tab === t.value
-                      ? "bg-white text-black shadow-sm"
-                      : "text-zinc-500 hover:text-white"
+                      ? "bg-zinc-800 text-white"
+                      : "text-zinc-600 hover:text-white"
                   }`}
                 >
                   {t.label}
@@ -529,11 +529,11 @@ export default function MonitorClient({ walletMap }: Props) {
             ].map((opt) => (
               <button
                 key={opt.label}
-                onClick={() => setChain(opt.value)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                onClick={() => setParam("chain", opt.value)}
+                className={`px-2.5 py-1 rounded text-[11px] font-mono uppercase tracking-wider transition-all ${
                   chain === opt.value
-                    ? "bg-white text-black"
-                    : "bg-bg-card border border-border text-zinc-500 hover:text-white"
+                    ? "bg-zinc-800 text-white border border-zinc-700"
+                    : "border border-border text-zinc-600 hover:text-white"
                 }`}
               >
                 {opt.label}
@@ -545,10 +545,10 @@ export default function MonitorClient({ walletMap }: Props) {
             {/* Live indicator */}
             <button
               onClick={() => setAutoRefresh(!autoRefresh)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+              className={`px-2.5 py-1 rounded text-[11px] font-mono uppercase tracking-wider transition-all flex items-center gap-1.5 ${
                 autoRefresh
-                  ? "bg-buy/10 border border-buy/30 text-buy"
-                  : "bg-bg-card border border-border text-zinc-600"
+                  ? "bg-buy/10 border border-buy/20 text-buy"
+                  : "border border-border text-zinc-600"
               }`}
             >
               <span
@@ -560,7 +560,7 @@ export default function MonitorClient({ walletMap }: Props) {
             </button>
 
             {/* Stats */}
-            <div className="hidden sm:flex items-center gap-3 text-[11px] text-zinc-600 bg-bg-card border border-border rounded-lg px-3 py-1.5">
+            <div className="hidden sm:flex items-center gap-3 text-[11px] font-mono text-zinc-600 bg-bg-card border border-border rounded px-3 py-1">
               <span>
                 <span className="text-zinc-400 font-medium">{groups.length}</span> wallets
               </span>
@@ -574,14 +574,24 @@ export default function MonitorClient({ walletMap }: Props) {
 
         {/* Card grid */}
         <div className="flex-1 overflow-y-auto p-4">
-          {loading ? (
+          {error ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+              <div className="text-sell text-sm">Failed to load trades: {error}</div>
+              <button
+                onClick={() => { setError(null); setLoading(true); fetchTrades(); }}
+                className="px-3 py-1.5 rounded border border-border text-xs text-zinc-400 hover:text-white transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          ) : loading ? (
             <div className="flex items-center justify-center py-20">
               <div className="w-6 h-6 border-2 border-zinc-700 border-t-white rounded-full animate-spin" />
             </div>
           ) : groups.length === 0 ? (
             <div className="text-center py-20">
-              <div className="text-4xl mb-4">📡</div>
-              <h3 className="text-lg font-semibold text-white mb-2">No activity yet</h3>
+              <div className="text-[11px] font-mono text-zinc-700 mb-3 uppercase tracking-widest">NO SIGNAL</div>
+              <h3 className="text-sm font-semibold text-white mb-2">No activity yet</h3>
               <p className="text-sm text-zinc-600 max-w-md mx-auto">
                 Trades will appear here once the ingestion pipeline is running.
                 Switch tabs or adjust filters to see different wallet categories.
@@ -597,5 +607,19 @@ export default function MonitorClient({ walletMap }: Props) {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function MonitorClient({ walletMap }: Props) {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-full items-center justify-center">
+          <div className="w-6 h-6 border-2 border-zinc-700 border-t-white rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <MonitorInner walletMap={walletMap} />
+    </Suspense>
   );
 }
