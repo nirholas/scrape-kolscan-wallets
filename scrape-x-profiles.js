@@ -21,11 +21,24 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import {
   GRAPHQL,
   BEARER_TOKEN,
-  DEFAULT_FEATURES,
   buildGraphQLUrl,
   parseUserData,
 } from "xactions/scrapers/twitter/http";
-import { USER_FEATURES } from "xactions/src/scrapers/twitter/http/endpoints.js";
+
+// User profile feature flags (from Twitter's web client)
+const USER_FEATURES = {
+  hidden_profile_likes_enabled: true,
+  hidden_profile_subscriptions_enabled: true,
+  responsive_web_graphql_exclude_directive_enabled: true,
+  verified_phone_label_enabled: false,
+  subscriptions_verification_info_is_identity_verified_enabled: true,
+  subscriptions_verification_info_verified_since_enabled: true,
+  highlights_tweets_tab_ui_enabled: true,
+  responsive_web_twitter_article_notes_tab_enabled: false,
+  creator_subscriptions_tweet_preview_api_enabled: true,
+  responsive_web_graphql_skip_user_profile_image_extensions_enabled: false,
+  responsive_web_graphql_timeline_navigation_enabled: true,
+};
 
 // --------------------------------------------------------------------------
 // 1. Collect all unique Twitter usernames from our data
