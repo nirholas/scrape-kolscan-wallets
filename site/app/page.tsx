@@ -47,28 +47,6 @@ export default async function Home() {
         }}
       />
 
-      {/* Stats ticker bar */}
-      <div className="border-b border-border bg-bg-secondary">
-        <div className="max-w-7xl mx-auto px-6 h-10 flex items-center gap-8 overflow-x-auto">
-          {[
-            { value: kolscanWallets.toString(), label: "KolScan KOLs" },
-            { value: solGmgn.length.toLocaleString(), label: "GMGN Solana" },
-            { value: bscGmgn.length.toLocaleString(), label: "GMGN BSC" },
-            { value: allSolAddresses.size.toLocaleString(), label: "Total Wallets" },
-          ].map((s, i) => (
-            <div key={s.label} className="shrink-0 flex items-center gap-2">
-              {i > 0 && <span className="text-zinc-800 select-none">|</span>}
-              <span className="font-mono text-sm font-semibold text-white tabular-nums">{s.value}</span>
-              <span className="text-xs text-zinc-600">{s.label}</span>
-            </div>
-          ))}
-          <div className="shrink-0 flex items-center gap-1.5 ml-auto">
-            <span className="w-1.5 h-1.5 rounded-full bg-buy animate-pulse" />
-            <span className="text-[11px] text-zinc-600 font-mono">LIVE</span>
-          </div>
-        </div>
-      </div>
-
       {/* Hero — compact, copy + CTAs only */}
       <div className="border-b border-border">
         <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">

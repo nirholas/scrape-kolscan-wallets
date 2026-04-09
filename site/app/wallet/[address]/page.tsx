@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { getData, getXProfiles, getXProfile } from "@/lib/data";
+import { getData, getXProfiles, getXProfile, getSolGmgnData } from "@/lib/data";
 import PnlCalendar from "@/app/components/PnlCalendar";
+import CopyButton from "@/app/components/CopyButton";
 
 function truncate(addr: string) {
   return addr.slice(0, 6) + "..." + addr.slice(-4);
@@ -11,8 +12,19 @@ function profitColor(v: number) {
 }
 
 function fmt(v: number) {
-  const sign = v >= 0 ? "+" : "";
-  return `${sign}${v.toFixed(2)} SOL`;
+  return `${v >= 0 ? "+" : ""}${v.toFixed(2)} SOL`;
+}
+
+function relativeTime(ts: number): string {
+  if (!ts) return "N/A";
+  const diff = Date.now() - ts * 1000;
+  const m = diff / 60000;
+  const h = m / 60;
+  const d = h / 24;
+  if (d >= 1) return `${Math.floor(d)}d ago`;
+  if (h >= 1) return `${Math.floor(h)}h ago`;
+  if (m >= 1) return `${Math.floor(m)}m ago`;
+  return "just now";
 }
 
 export async function generateStaticParams() {
@@ -35,7 +47,7 @@ export async function generateMetadata({ params }: { params: { address: string }
 }
 
 export default async function WalletPage({ params }: { params: { address: string } }) {
-  const [data, xProfiles] = await Promise.all([getData(), getXProfiles()]);
+  const [data, xProfiles, gmgnSol] = await Promise.all([getData(), getXProfiles(), getSolGmgnData()]);
   const entries = data.filter((e) => e.wallet_address === params.address);
 
   if (entries.length === 0) {
@@ -51,6 +63,7 @@ export default async function WalletPage({ params }: { params: { address: string
   const twitter = entries[0].twitter;
   const telegram = entries[0].telegram;
   const xProfile = getXProfile(xProfiles, twitter);
+  const gmgnExists = gmgnSol.some((w) => w.wallet_address === params.address);
 
   const timeframeLabel = (tf: number) => tf === 1 ? "Daily" : tf === 7 ? "Weekly" : "Monthly";
 
@@ -59,6 +72,7 @@ export default async function WalletPage({ params }: { params: { address: string
   const totalLosses = entries.reduce((s, e) => s + e.losses, 0);
   const totalTrades = totalWins + totalLosses;
   const winRatePct = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0;
+  const lowSample = totalTrades > 0 && totalTrades < 10;
   const best = entries.reduce((a, b) => (a.profit > b.profit ? a : b));
 
   const ranks = entries.map((e) => {
@@ -82,6 +96,10 @@ export default async function WalletPage({ params }: { params: { address: string
 
   return (
     <main className="max-w-6xl mx-auto px-4 py-6 animate-fade-in">
+      {/* Back link */}
+      <Link href="/" className="inline-flex items-center gap-1 text-zinc-500 hover:text-white text-xs mb-4 transition-colors">
+        ← Leaderboard
+      </Link>
 
       {/* ── Compact Header ── */}
       <div className="flex items-center gap-3 mb-5">
@@ -98,13 +116,20 @@ export default async function WalletPage({ params }: { params: { address: string
             <span className="text-white font-bold text-base">{name}</span>
             {xProfile?.verified && <span className="text-blue-400 text-xs">✓</span>}
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-buy/15 text-buy border border-buy/25">KolScan</span>
+            {gmgnExists && (
+              <Link href={`/gmgn-wallet/${params.address}`}
+                className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/15 text-yellow-400 border border-yellow-500/25 hover:bg-yellow-500/25 transition-colors"
+                title="Also tracked by GMGN — click to view">
+                GMGN ↗
+              </Link>
+            )}
             {twitter && (
               <a href={twitter} target="_blank" rel="noopener noreferrer"
                 className="text-zinc-500 hover:text-white transition-colors text-sm leading-none">𝕏</a>
             )}
             {telegram && (
               <a href={telegram} target="_blank" rel="noopener noreferrer"
-                className="text-zinc-500 hover:text-blue-400 transition-colors text-sm leading-none">✈</a>
+                className="text-zinc-500 hover:text-blue-400 transition-colors text-sm leading-none" title="Telegram">✈</a>
             )}
             {xProfile && (
               <span className="text-zinc-600 text-xs">
@@ -115,13 +140,17 @@ export default async function WalletPage({ params }: { params: { address: string
           {xProfile?.bio && (
             <p className="text-zinc-500 text-[11px] mt-0.5 line-clamp-1 max-w-lg">{xProfile.bio}</p>
           )}
-          <a href={`https://solscan.io/account/${params.address}`} target="_blank" rel="noopener noreferrer"
-            className="font-mono text-[11px] text-zinc-600 hover:text-buy transition-colors">
-            {truncate(params.address)}
-          </a>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <a href={`https://solscan.io/account/${params.address}`} target="_blank" rel="noopener noreferrer"
+              className="font-mono text-[11px] text-zinc-600 hover:text-buy transition-colors">
+              {truncate(params.address)}
+            </a>
+            <CopyButton text={params.address}
+              className="text-zinc-600 hover:text-white transition-colors text-xs leading-none" />
+          </div>
         </div>
 
-        <div className="flex gap-1.5 flex-shrink-0">
+        <div className="flex gap-1.5 flex-shrink-0 flex-wrap justify-end">
           {quickLinks.map((link) => (
             <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer"
               className="bg-bg-card border border-border rounded-lg px-2.5 py-1 text-xs text-zinc-500 hover:text-white hover:border-zinc-600 transition-all">
@@ -132,17 +161,17 @@ export default async function WalletPage({ params }: { params: { address: string
       </div>
 
       {/* ── 3-Column Dashboard ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
 
-        {/* Left: Total Profit */}
+        {/* Left: Total Profit + Rankings */}
         <div className="bg-bg-card border border-border rounded-xl p-4">
           <div className="text-zinc-500 text-[11px] uppercase tracking-wider mb-2">Total Profit · SOL</div>
-          <div className={`text-3xl font-bold tabular-nums leading-none mb-1 ${profitColor(totalProfit)}`}>
+          <div className={`text-3xl font-bold tabular-nums leading-none mb-0.5 ${profitColor(totalProfit)}`}>
             {totalProfit >= 0 ? "+" : ""}{totalProfit.toFixed(2)}
           </div>
-          <div className="text-zinc-500 text-xs mb-4">SOL across all timeframes</div>
+          <div className="text-zinc-600 text-xs mb-4">across all timeframes</div>
 
-          <div className="space-y-1.5 text-xs">
+          <div className="space-y-1.5 text-xs mb-4">
             <div className="flex justify-between">
               <span className="text-zinc-500">Best Timeframe</span>
               <span className="text-white font-medium">{timeframeLabel(best.timeframe)}</span>
@@ -151,25 +180,22 @@ export default async function WalletPage({ params }: { params: { address: string
               <span className="text-zinc-500">Best Profit</span>
               <span className={`tabular-nums font-medium ${profitColor(best.profit)}`}>{fmt(best.profit)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-zinc-500">Total Trades</span>
-              <span className="text-white tabular-nums font-medium">{totalTrades}</span>
-            </div>
           </div>
 
-          {/* Leaderboard ranks */}
-          <div className="mt-4 space-y-2">
+          {/* Rankings progress bars */}
+          <div className="space-y-2.5">
+            <div className="text-zinc-600 text-[10px] uppercase tracking-wider">Leaderboard</div>
             {ranks.map((r) => {
               const pct = r.total > 0 ? (r.rank / r.total) * 100 : 0;
               return (
                 <div key={r.timeframe}>
                   <div className="flex justify-between text-[11px] mb-1">
                     <span className="text-zinc-500">{timeframeLabel(r.timeframe)}</span>
-                    <span className="text-zinc-400 tabular-nums">#{r.rank}/{r.total}</span>
+                    <span className="text-zinc-400 tabular-nums">#{r.rank} / {r.total}</span>
                   </div>
                   <div className="w-full bg-bg-primary rounded-full h-1">
                     <div
-                      className={`h-1 rounded-full ${r.rank <= 10 ? "bg-buy" : r.rank <= 25 ? "bg-yellow-500" : "bg-zinc-600"}`}
+                      className={`h-1 rounded-full transition-all ${r.rank <= 10 ? "bg-buy" : r.rank <= 25 ? "bg-yellow-500" : "bg-zinc-600"}`}
                       style={{ width: `${Math.max(100 - pct, 5)}%` }}
                     />
                   </div>
@@ -179,14 +205,21 @@ export default async function WalletPage({ params }: { params: { address: string
           </div>
         </div>
 
-        {/* Center: Win Rate + Per-timeframe stats */}
+        {/* Center: Win Rate + Per-timeframe */}
         <div className="bg-bg-card border border-border rounded-xl p-4">
-          <div className="text-zinc-500 text-[11px] uppercase tracking-wider mb-2">Win Rate</div>
+          <div className="text-zinc-500 text-[11px] uppercase tracking-wider mb-2">
+            Win Rate
+            {lowSample && (
+              <span className="ml-2 text-yellow-500/80 normal-case" title="Low sample size — win rate may not be reliable">
+                ⚠ {totalTrades} trades
+              </span>
+            )}
+          </div>
           <div className={`text-3xl font-bold tabular-nums leading-none mb-4 ${winRatePct >= 50 ? "text-buy" : totalTrades > 0 ? "text-sell" : "text-zinc-500"}`}>
             {totalTrades > 0 ? `${winRatePct.toFixed(1)}%` : "—"}
           </div>
 
-          <div className="space-y-2 text-xs">
+          <div className="space-y-1.5 text-xs mb-4">
             {[
               { label: "Wins", value: totalWins.toString(), color: "text-buy" },
               { label: "Losses", value: totalLosses.toString(), color: "text-sell" },
@@ -197,32 +230,31 @@ export default async function WalletPage({ params }: { params: { address: string
                 <span className={`tabular-nums font-medium ${row.color}`}>{row.value}</span>
               </div>
             ))}
+          </div>
 
-            <div className="border-t border-border/50 pt-2 mt-1 space-y-2">
-              {entries.map((e) => {
-                const total = e.wins + e.losses;
-                const wr = total > 0 ? ((e.wins / total) * 100).toFixed(1) : "—";
-                return (
-                  <div key={e.timeframe} className="flex justify-between">
-                    <span className="text-zinc-600">{timeframeLabel(e.timeframe)}</span>
-                    <div className="flex gap-3">
-                      <span className="text-zinc-500 tabular-nums">
-                        <span className="text-buy">{e.wins}</span>/<span className="text-sell">{e.losses}</span>
-                      </span>
-                      <span className={`tabular-nums font-medium ${wr !== "—" ? (parseFloat(wr) >= 50 ? "text-buy" : "text-sell") : "text-zinc-600"}`}>
-                        {wr !== "—" ? `${wr}%` : "—"}
-                      </span>
-                      <span className={`tabular-nums font-medium ${profitColor(e.profit)}`}>{fmt(e.profit)}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+          <div className="border-t border-border/50 pt-3 space-y-2">
+            <div className="text-zinc-600 text-[10px] uppercase tracking-wider">By Timeframe</div>
+            {entries.map((e) => {
+              const total = e.wins + e.losses;
+              const wr = total > 0 ? (e.wins / total) * 100 : 0;
+              return (
+                <div key={e.timeframe} className="flex items-center justify-between text-xs">
+                  <span className="text-zinc-500 w-16">{timeframeLabel(e.timeframe)}</span>
+                  <span className="text-zinc-600 tabular-nums">
+                    <span className="text-buy">{e.wins}</span>/<span className="text-sell">{e.losses}</span>
+                  </span>
+                  <span className={`tabular-nums ${total > 0 ? (wr >= 50 ? "text-buy" : "text-sell") : "text-zinc-600"}`}>
+                    {total > 0 ? `${wr.toFixed(1)}%` : "—"}
+                  </span>
+                  <span className={`tabular-nums font-medium ${profitColor(e.profit)}`}>{fmt(e.profit)}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Right: X Profile / Social */}
-        <div className="bg-bg-card border border-border rounded-xl p-4">
+        {/* Right: X Profile or Rankings detail */}
+        <div className="bg-bg-card border border-border rounded-xl p-4 sm:col-span-2 lg:col-span-1">
           {xProfile ? (
             <>
               <div className="text-zinc-500 text-[11px] uppercase tracking-wider mb-3">X / Twitter</div>
@@ -231,7 +263,7 @@ export default async function WalletPage({ params }: { params: { address: string
                   <img src={xProfile.header} alt="" className="w-full h-20 object-cover" />
                 </div>
               )}
-              <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs mb-3">
+              <div className="grid grid-cols-2 gap-y-2.5 gap-x-4 text-xs mb-3">
                 {[
                   { label: "Followers", value: xProfile.followers.toLocaleString() },
                   { label: "Following", value: xProfile.following.toLocaleString() },
@@ -247,12 +279,10 @@ export default async function WalletPage({ params }: { params: { address: string
               <div className="space-y-1 text-[11px] text-zinc-500">
                 {xProfile.location && <div>📍 {xProfile.location}</div>}
                 {xProfile.website && (
-                  <div>
-                    <a href={xProfile.website} target="_blank" rel="noopener noreferrer"
-                      className="hover:text-white transition-colors truncate block max-w-full">
-                      🔗 {xProfile.website.replace(/^https?:\/\//, "")}
-                    </a>
-                  </div>
+                  <a href={xProfile.website} target="_blank" rel="noopener noreferrer"
+                    className="hover:text-white transition-colors block truncate">
+                    🔗 {xProfile.website.replace(/^https?:\/\//, "")}
+                  </a>
                 )}
                 {xProfile.joinDate && (
                   <div>📅 Joined {new Date(xProfile.joinDate).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</div>
@@ -260,8 +290,8 @@ export default async function WalletPage({ params }: { params: { address: string
               </div>
             </>
           ) : (
-            <div className="h-full flex flex-col justify-between">
-              <div className="text-zinc-500 text-[11px] uppercase tracking-wider mb-3">Rankings</div>
+            <>
+              <div className="text-zinc-500 text-[11px] uppercase tracking-wider mb-3">Rankings Detail</div>
               <div className="space-y-3">
                 {ranks.map((r) => {
                   const pct = r.total > 0 ? (r.rank / r.total) * 100 : 0;
@@ -273,7 +303,7 @@ export default async function WalletPage({ params }: { params: { address: string
                       </div>
                       <div className="w-full bg-bg-primary rounded-full h-1 mb-2">
                         <div
-                          className={`h-1 rounded-full ${r.rank <= 10 ? "bg-buy" : r.rank <= 25 ? "bg-yellow-500" : "bg-zinc-600"}`}
+                          className={`h-1 rounded-full transition-all ${r.rank <= 10 ? "bg-buy" : r.rank <= 25 ? "bg-yellow-500" : "bg-zinc-600"}`}
                           style={{ width: `${Math.max(100 - pct, 5)}%` }}
                         />
                       </div>
@@ -285,7 +315,7 @@ export default async function WalletPage({ params }: { params: { address: string
                   );
                 })}
               </div>
-            </div>
+            </>
           )}
         </div>
       </div>
@@ -296,7 +326,7 @@ export default async function WalletPage({ params }: { params: { address: string
         <PnlCalendar entries={entries} walletAddress={params.address} walletName={name} />
       </div>
 
-      {/* ── Top KOLs (compact) ── */}
+      {/* ── Top KOLs ── */}
       {topWallets.length > 0 && (
         <div className="mb-4">
           <div className="text-zinc-500 text-[11px] uppercase tracking-wider mb-2">Top KOLs Today</div>

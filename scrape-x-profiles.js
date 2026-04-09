@@ -160,22 +160,49 @@ async function scrapeProfiles(usernames) {
     process.exit(0);
   });
 
-  console.log("🚀 Launching browser...");
-  const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({
-    userAgent:
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-    locale: "en-US",
-    viewport: { width: 1280, height: 900 },
-  });
-
-  // Block images/media to speed up loads — we only need the API responses
-  await context.route("**/*.{png,jpg,jpeg,gif,webp,svg,mp4,woff,woff2}", (route) => route.abort());
-
-  const CONCURRENCY = 8; // parallel browser pages
+  const CONCURRENCY = 6; // parallel browser pages
+  const SESSION_LIMIT = 100; // rotate context after this many requests
   let success = 0;
   let failed = 0;
   let completed = 0;
+
+  console.log("🚀 Launching browser...");
+  const browser = await chromium.launch({ headless: true });
+
+  async function makeContext() {
+    const ctx = await browser.newContext({
+      userAgent:
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+      locale: "en-US",
+      viewport: { width: 1280, height: 900 },
+    });
+    // Block images/media/fonts — we only need the API responses
+    await ctx.route("**/*.{png,jpg,jpeg,gif,webp,svg,mp4,woff,woff2,ttf,otf}", (route) => route.abort());
+    return ctx;
+  }
+
+  // Shared context state — rotated when X starts showing the login wall
+  let sharedCtx = await makeContext();
+  let ctxRequestCount = 0;
+  let rotating = false;
+
+  async function getContext() {
+    // Proactively rotate after SESSION_LIMIT requests to avoid login wall
+    if (ctxRequestCount >= SESSION_LIMIT && !rotating) {
+      rotating = true;
+      console.log(`\n🔄 Rotating browser session after ${ctxRequestCount} requests...`);
+      const oldCtx = sharedCtx;
+      sharedCtx = await makeContext();
+      ctxRequestCount = 0;
+      rotating = false;
+      await oldCtx.close().catch(() => {});
+      console.log("✅ Fresh session ready\n");
+    }
+    // Wait if rotation is in progress
+    while (rotating) await sleep(200);
+    ctxRequestCount++;
+    return sharedCtx;
+  }
 
   // Work queue — process toScrape with a fixed-size pool of parallel workers
   const queue = [...toScrape];
@@ -188,7 +215,8 @@ async function scrapeProfiles(usernames) {
       const progress = `[${idx + 1}/${toScrape.length}]`;
 
       try {
-        const profile = await scrapeOne(context, username);
+        const ctx = await getContext();
+        const profile = await scrapeOne(ctx, username);
         results[username] = { ...profile, scrapedAt: new Date().toISOString() };
         success++;
         completed++;
@@ -202,8 +230,24 @@ async function scrapeProfiles(usernames) {
           console.log(`${progress} ⚠️  ${msg}`);
           results[username] = { username, error: msg, scrapedAt: new Date().toISOString() };
           failed++;
+        } else if (msg.includes("LOGIN_WALL")) {
+          // Session got blocked — put back, force rotate, retry
+          queue.unshift(username);
+          completed--;
+          if (!rotating) {
+            rotating = true;
+            saveToDisk();
+            console.log(`\n🔄 Login wall detected — rotating session...`);
+            const oldCtx = sharedCtx;
+            sharedCtx = await makeContext();
+            ctxRequestCount = 0;
+            rotating = false;
+            await oldCtx.close().catch(() => {});
+            console.log("✅ Fresh session ready\n");
+          } else {
+            await sleep(2000);
+          }
         } else if (msg.includes("RATE_LIMIT") || msg.includes("429")) {
-          // Put back in queue and pause this worker briefly
           queue.unshift(username);
           completed--;
           saveToDisk();
@@ -271,11 +315,19 @@ async function scrapeOne(context, username) {
     ]);
 
     if (!result) {
-      // Fallback: check if the page shows "Account suspended" or "doesn't exist"
+      const finalUrl = page.url();
+      // Login wall — X redirected us to the sign-in flow
+      if (finalUrl.includes("/login") || finalUrl.includes("/i/flow/login")) {
+        throw new Error(`LOGIN_WALL:@${username}`);
+      }
       const bodyText = await page.textContent("body").catch(() => "");
       if (bodyText.includes("Account suspended")) throw new Error(`SUSPENDED:@${username}`);
       if (bodyText.includes("doesn't exist") || bodyText.includes("This account")) {
         throw new Error(`NOT_FOUND:@${username}`);
+      }
+      // Check for login wall in body text too
+      if (bodyText.includes("Sign in to X") || bodyText.includes("Log in to X")) {
+        throw new Error(`LOGIN_WALL:@${username}`);
       }
       throw new Error(`TIMEOUT:@${username} — no GraphQL response intercepted`);
     }
