@@ -8,6 +8,7 @@
     "scrape": "node scrape.js",
     "scrape:axiom": "node scrape-axiom.js",
     "scrape:x": "node scrape-x-profiles.js",
+    "scrape:x-tracker": "node scrape-gmgn-x-tracker.js",
     "setup": "npm install && npx playwright install chromium && sudo npx playwright install-deps chromium",
     "api": "bun api/index.ts",
     "mcp": "bun mcp/index.ts",

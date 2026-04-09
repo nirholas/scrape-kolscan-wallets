@@ -117,6 +117,27 @@ export interface XProfile {
 }
 
 export type SortField = "name" | "profit" | "wins" | "losses" | "winrate";
+
+// GMGN X Tracker account
+export interface XTrackerAccount {
+  handle: string;
+  name: string | null;
+  avatar: string | null;
+  subscribers: number;
+  followers: number;
+  tag: string | null;
+  verified: boolean;
+  bio: string | null;
+}
+
+export interface XTrackerData {
+  meta: {
+    scrapedAt: string;
+    source: string;
+    totalAccounts: number;
+  };
+  accounts: XTrackerAccount[];
+}
 export type GmgnSortField = "name" | "profit_1d" | "profit_7d" | "profit_30d" | "winrate_7d" | "buys_7d" | "sells_7d";
 export type SortDir = "asc" | "desc";
 export type Timeframe = 1 | 7 | 30;

@@ -1,4 +1,4 @@
-import type { KolEntry, GmgnWallet, UnifiedWallet, XProfile } from "./types";
+import type { KolEntry, GmgnWallet, UnifiedWallet, XProfile, XTrackerData, XTrackerAccount } from "./types";
 
 const KOLSCAN_DATA_URL =
   "https://raw.githubusercontent.com/nirholas/scrape-kolscan-wallets/main/output/kolscan-leaderboard.json";
@@ -286,4 +286,43 @@ export function getXProfile(
   const profile = profiles[username];
   if (profile && !profile.error) return profile;
   return null;
+}
+
+// --- GMGN X Tracker Data ---
+const X_TRACKER_URL =
+  "https://raw.githubusercontent.com/nirholas/scrape-kolscan-wallets/main/site/data/gmgn-x-tracker.json";
+
+let xTrackerCache: XTrackerData | null = null;
+
+export async function getXTrackerData(): Promise<XTrackerData> {
+  if (xTrackerCache) return xTrackerCache;
+
+  try {
+    const fs = await import("fs");
+    const path = await import("path");
+    const filePath = path.join(process.cwd(), "data", "gmgn-x-tracker.json");
+    if (fs.existsSync(filePath)) {
+      xTrackerCache = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+      return xTrackerCache!;
+    }
+  } catch {
+    // fs not available
+  }
+
+  try {
+    const res = await fetch(X_TRACKER_URL);
+    if (res.ok) {
+      xTrackerCache = await res.json();
+      return xTrackerCache!;
+    }
+  } catch {
+    // fetch failed
+  }
+
+  return { meta: { scrapedAt: "", source: "", totalAccounts: 0 }, accounts: [] };
+}
+
+export async function getXTrackerAccounts(): Promise<XTrackerAccount[]> {
+  const data = await getXTrackerData();
+  return data.accounts;
 }

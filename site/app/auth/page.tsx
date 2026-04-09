@@ -95,11 +95,12 @@ function AuthContent() {
         method: "POST",
         body: { walletAddress, chainId: 1 },
       });
-      if (!nonceRes.data?.nonce) throw new Error("Failed to get nonce");
+      const nonceData = nonceRes.data as { nonce?: string } | null;
+      if (!nonceData?.nonce) throw new Error("Failed to get nonce");
 
       const domain = window.location.host;
       const uri = window.location.origin;
-      const nonce = nonceRes.data.nonce;
+      const nonce = nonceData.nonce;
       const issuedAt = new Date().toISOString();
       const message = [
         `${domain} wants you to sign in with your Ethereum account:`,
