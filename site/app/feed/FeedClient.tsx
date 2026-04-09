@@ -284,9 +284,12 @@ export default function FeedClient() {
                           <img src={t.tokenLogo} alt="" className="w-5 h-5 rounded-full" />
                         )}
                         <div>
-                          <span className="text-sm text-white font-medium">
+                          <Link
+                            href={`/token/${t.chain}/${t.tokenAddress}`}
+                            className="text-sm text-white font-medium hover:text-accent transition-colors"
+                          >
                             {t.tokenSymbol || shortAddr(t.tokenAddress)}
-                          </span>
+                          </Link>
                           {t.tokenName && (
                             <span className="text-[11px] text-zinc-600 ml-1.5">
                               {t.tokenName}
