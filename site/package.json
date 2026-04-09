@@ -8,7 +8,9 @@
     "start": "next start",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "ingest": "npx tsx scripts/ingest-trades.ts import",
+    "ingest:poll": "npx tsx scripts/ingest-trades.ts poll"
   },
   "dependencies": {
     "better-auth": "^1.3.4",

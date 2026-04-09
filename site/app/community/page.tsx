@@ -5,7 +5,8 @@ import { walletSubmission } from "@/drizzle/db/schema";
 type WalletSubmission = InferSelectModel<typeof walletSubmission>;
 
 export const metadata = {
-  title: "KolQuest Community Wallets",
+  title: "Community Wallets",
+  description: "Community-submitted wallets vetted by the KolQuest community — discover new alpha from crowd-sourced wallet intelligence.",
 };
 
 export default async function CommunityPage() {

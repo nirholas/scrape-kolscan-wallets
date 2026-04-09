@@ -2,10 +2,11 @@
  * Scrape X/Twitter profile data for all KOLs using xactions.
  *
  * Usage:
+ *   # With auth token (recommended — higher rate limits):
  *   X_AUTH_TOKEN=your_auth_token node scrape-x-profiles.js
  *
- * The auth token is a session cookie from x.com (the `auth_token` cookie).
- * You can grab it from your browser DevTools → Application → Cookies → x.com → auth_token
+ *   # Without auth (guest tokens — works for public profiles):
+ *   node scrape-x-profiles.js
  *
  * Output: site/data/x-profiles.json
  */
@@ -17,7 +18,16 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // xactions HTTP-based scraper (no browser needed)
-import { TwitterHttpClient, scrapeProfile } from "xactions/scrapers/twitter/http";
+import {
+  TwitterHttpClient,
+  GuestTokenManager,
+  scrapeProfile,
+  GRAPHQL,
+  BEARER_TOKEN,
+  DEFAULT_FEATURES,
+  buildGraphQLUrl,
+  parseUserData,
+} from "xactions/scrapers/twitter/http";
 
 // --------------------------------------------------------------------------
 // 1. Collect all unique Twitter usernames from our data

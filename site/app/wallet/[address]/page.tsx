@@ -23,9 +23,16 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: { params: { address: string } }) {
   const data = await getData();
   const entry = data.find((e) => e.wallet_address === params.address);
+  const name = entry?.name || params.address.slice(0, 8);
+  const title = `${name} Wallet`;
+  const description = `KolScan wallet profile and PnL for ${name} — profit, win rate, and trade history on Solana.`;
   return {
-    title: `${entry?.name || params.address.slice(0, 8)} | KolQuest`,
-    description: `Wallet details for ${entry?.name || params.address}`,
+    title,
+    description,
+    openGraph: {
+      title: `${title} | KolQuest`,
+      description,
+    },
   };
 }
 

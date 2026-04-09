@@ -32,6 +32,27 @@ export default async function Home() {
 
   return (
     <main className="animate-fade-in">
+      {/* JSON-LD structured data for SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            name: "KolQuest",
+            url: "https://kol.quest",
+            description:
+              "Track the smartest crypto wallets — KolScan KOLs, GMGN smart money, Solana & BSC. Leaderboards, analytics, and copy-trade tools.",
+            applicationCategory: "FinanceApplication",
+            operatingSystem: "Web",
+            offers: {
+              "@type": "Offer",
+              price: "0",
+              priceCurrency: "USD",
+            },
+          }),
+        }}
+      />
       {/* Hero — full viewport */}
       <div className="relative min-h-[calc(100vh-4rem)] flex items-center overflow-hidden">
         {/* Ambient glow */}

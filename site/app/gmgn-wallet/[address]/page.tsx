@@ -35,9 +35,16 @@ export async function generateMetadata({ params }: { params: { address: string }
   const [sol, bsc] = await Promise.all([getSolGmgnData(), getBscGmgnData()]);
   const all = [...sol, ...bsc];
   const w = all.find((e) => e.wallet_address === params.address);
+  const name = w?.name || params.address.slice(0, 8);
+  const title = `${name} Wallet`;
+  const description = `GMGN smart money profile for ${name} — realized profit, win rate, and token trades.`;
   return {
-    title: `${w?.name || params.address.slice(0, 8)} | KolQuest`,
-    description: `GMGN wallet profile for ${w?.name || params.address}`,
+    title,
+    description,
+    openGraph: {
+      title: `${title} | KolQuest`,
+      description,
+    },
   };
 }
 

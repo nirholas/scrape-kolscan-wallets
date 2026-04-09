@@ -12,9 +12,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/all-solana",
     "/gmgn-sol",
     "/bsc",
+    "/feed",
     "/docs",
     "/community",
     "/calendar",
+    "/submit",
   ];
 
   const entries: MetadataRoute.Sitemap = staticPages.map((path) => ({

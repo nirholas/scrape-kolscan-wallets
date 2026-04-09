@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ApiPlayground from "./ApiPlayground";
 
 export const metadata = {
   title: "Docs | KolQuest — API, MCP & Technical Writeup",
@@ -186,11 +187,25 @@ export default function DocsPage() {
 
       <SectionNav
         items={[
+          { id: "playground", label: "Playground" },
           { id: "api", label: "REST API" },
           { id: "mcp", label: "MCP Server" },
           { id: "writeup", label: "Technical Writeup" },
         ]}
       />
+
+      {/* ═══════════════════════════════════════════════ */}
+      {/*  API Playground                                */}
+      {/* ═══════════════════════════════════════════════ */}
+      <section id="playground" className="mb-20 scroll-mt-24">
+        <h2 className="text-2xl font-bold text-white mb-2">API Playground</h2>
+        <p className="text-zinc-400 text-sm mb-6">
+          Try the API live. Start the server with <code className="text-buy bg-bg-hover px-1.5 py-0.5 rounded text-xs font-mono">bun api/index.ts</code> then pick an endpoint and hit Send.
+        </p>
+        <div className="bg-bg-card rounded-2xl border border-border p-5 sm:p-6">
+          <ApiPlayground />
+        </div>
+      </section>
 
       {/* ═══════════════════════════════════════════════ */}
       {/*  REST API                                      */}

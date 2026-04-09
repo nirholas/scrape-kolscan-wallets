@@ -103,7 +103,7 @@ export default function LeaderboardClient({
         </div>
 
         {/* Controls */}
-        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
           {/* Timeframe Tabs */}
           <div className="flex bg-bg-card border border-border rounded-xl p-0.5">
             {timeframes.map((tf) => (
@@ -128,7 +128,7 @@ export default function LeaderboardClient({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search..."
-              className="bg-bg-card border border-border rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder:text-zinc-600 outline-none focus:border-buy/40 focus:ring-1 focus:ring-buy/20 w-44 transition-all"
+              className="bg-bg-card border border-border rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder:text-zinc-600 outline-none focus:border-buy/40 focus:ring-1 focus:ring-buy/20 w-full sm:w-44 transition-all"
             />
           </div>
 
