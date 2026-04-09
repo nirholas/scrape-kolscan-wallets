@@ -103,63 +103,78 @@ async function downloadBatch(tasks, concurrency = 8) {
 // ─── collectors ───────────────────────────────────────────────────────────────
 
 /**
- * x-profiles.json: { [key]: { username, avatar, header, ... } }
- * Rewrite avatar to /avatars/{username}.jpg
+ * Global URL→localName registry shared across all files.
+ * Prevents duplicate downloads and resolves filename collisions.
  */
-function collectXProfiles(data) {
-  const tasks = [];
-  for (const [key, profile] of Object.entries(data)) {
-    if (!profile.avatar || profile.avatar.startsWith("/avatars/")) continue;
-    const name = localName(profile.avatar, profile.username);
-    tasks.push({ url: profile.avatar, dest: path.join(PUBLIC_AVATARS, name), key, name });
-  }
-  return tasks;
-}
+const globalUrlMap = new Map();   // url → localName
+const globalNameMap = new Map();  // localName → url (detect collisions)
 
-function rewriteXProfiles(data, tasks) {
-  for (const t of tasks) {
-    if (t.result === "ok" || t.result === "exists") {
-      data[t.key].avatar = `/avatars/${t.name}`;
-    }
+function registerUrl(url, hint) {
+  if (!url || !url.startsWith("http")) return null;
+  if (globalUrlMap.has(url)) return globalUrlMap.get(url);
+
+  let name = localName(url, hint);
+
+  // Handle filename collisions: two different URLs mapping to the same name
+  if (globalNameMap.has(name) && globalNameMap.get(name) !== url) {
+    const ext = path.extname(name);
+    const base = name.slice(0, -ext.length);
+    name = `${base}_${md5(url).slice(0, 8)}${ext}`;
   }
+
+  globalUrlMap.set(url, name);
+  globalNameMap.set(name, url);
+  return name;
 }
 
 /**
- * Walk a nested structure looking for objects with an `avatar` field.
- * Returns { urlToLocalName } map and collects tasks.
+ * Collect all unique avatar URLs across every data file first,
+ * then download once, then rewrite all files.
  */
-function collectWallets(data) {
-  const tasks = [];
-  const seen = new Set();
-
-  function walk(node) {
-    if (!node || typeof node !== "object") return;
-    if (Array.isArray(node)) { node.forEach(walk); return; }
-    if (node.avatar && typeof node.avatar === "string" && node.avatar.startsWith("http")) {
-      const name = localName(node.avatar);
-      if (!seen.has(node.avatar)) {
-        seen.add(node.avatar);
-        tasks.push({ url: node.avatar, dest: path.join(PUBLIC_AVATARS, name), name });
+function collectAllUrls(dataMap) {
+  for (const [file, data] of Object.entries(dataMap)) {
+    if (file === "x-profiles.json") {
+      for (const profile of Object.values(data)) {
+        if (profile.avatar && profile.avatar.startsWith("http")) {
+          registerUrl(profile.avatar, profile.username);
+        }
       }
+    } else {
+      walkCollect(data);
     }
-    for (const v of Object.values(node)) walk(v);
   }
-
-  walk(data);
-  return tasks;
 }
 
-function rewriteWallets(data, urlToName) {
-  function walk(node) {
-    if (!node || typeof node !== "object") return;
-    if (Array.isArray(node)) { node.forEach(walk); return; }
-    if (node.avatar && typeof node.avatar === "string" && node.avatar.startsWith("http")) {
-      const name = urlToName[node.avatar];
-      if (name) node.avatar = `/avatars/${name}`;
-    }
-    for (const v of Object.values(node)) walk(v);
+function walkCollect(node) {
+  if (!node || typeof node !== "object") return;
+  if (Array.isArray(node)) { node.forEach(walkCollect); return; }
+  if (node.avatar && typeof node.avatar === "string" && node.avatar.startsWith("http")) {
+    // Prefer twitter_username > name > twitter_name > nickname as the display name hint
+    const hint = node.twitter_username || node.name || node.twitter_name || node.nickname || null;
+    registerUrl(node.avatar, hint || undefined);
   }
-  walk(data);
+  for (const v of Object.values(node)) walkCollect(v);
+}
+
+function rewriteAll(data, file) {
+  if (file === "x-profiles.json") {
+    for (const profile of Object.values(data)) {
+      if (profile.avatar && globalUrlMap.has(profile.avatar)) {
+        profile.avatar = `/avatars/${globalUrlMap.get(profile.avatar)}`;
+      }
+    }
+  } else {
+    walkRewrite(data);
+  }
+}
+
+function walkRewrite(node) {
+  if (!node || typeof node !== "object") return;
+  if (Array.isArray(node)) { node.forEach(walkRewrite); return; }
+  if (node.avatar && typeof node.avatar === "string" && globalUrlMap.has(node.avatar)) {
+    node.avatar = `/avatars/${globalUrlMap.get(node.avatar)}`;
+  }
+  for (const v of Object.values(node)) walkRewrite(v);
 }
 
 // ─── main ─────────────────────────────────────────────────────────────────────
@@ -167,37 +182,47 @@ function rewriteWallets(data, urlToName) {
 async function main() {
   fs.mkdirSync(PUBLIC_AVATARS, { recursive: true });
 
+  // 1. Load all data files
+  const dataMap = {};
   for (const file of DATA_FILES) {
     const filePath = path.join(DATA_DIR, file);
     if (!fs.existsSync(filePath)) { console.log(`  skip (not found): ${file}`); continue; }
+    dataMap[file] = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+    console.log(`Loaded ${file}`);
+  }
 
-    console.log(`\nProcessing ${file}...`);
-    const data = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+  // 2. Collect all unique URLs across every file (dedup globally)
+  collectAllUrls(dataMap);
+  console.log(`\nFound ${globalUrlMap.size} unique avatar URLs across all files`);
 
-    let tasks;
-    if (file === "x-profiles.json") {
-      tasks = collectXProfiles(data);
-      console.log(`  ${tasks.length} avatars to download`);
-      await downloadBatch(tasks);
-      rewriteXProfiles(data, tasks);
-    } else {
-      tasks = collectWallets(data);
-      console.log(`  ${tasks.length} unique avatars to download`);
-      await downloadBatch(tasks);
-      const urlToName = Object.fromEntries(
-        tasks.filter(t => t.result === "ok" || t.result === "exists").map(t => [t.url, t.name])
-      );
-      rewriteWallets(data, urlToName);
+  // 3. Build download tasks (one per unique URL)
+  const tasks = [];
+  for (const [url, name] of globalUrlMap) {
+    tasks.push({ url, dest: path.join(PUBLIC_AVATARS, name), name });
+  }
+
+  // 4. Download all at once
+  await downloadBatch(tasks);
+
+  const ok = tasks.filter(t => t.result === "ok").length;
+  const exist = tasks.filter(t => t.result === "exists").length;
+  const skipped = tasks.filter(t => t.result?.startsWith("skip")).length;
+  const errors = tasks.filter(t => t.result?.startsWith("error")).length;
+  console.log(`  downloaded: ${ok}  already existed: ${exist}  skipped (4xx): ${skipped}  errors: ${errors}`);
+
+  // Remove failed URLs from the map so we don't rewrite those
+  for (const t of tasks) {
+    if (t.result !== "ok" && t.result !== "exists") {
+      globalUrlMap.delete(t.url);
     }
+  }
 
-    const ok = tasks.filter(t => t.result === "ok").length;
-    const exist = tasks.filter(t => t.result === "exists").length;
-    const skipped = tasks.filter(t => t.result?.startsWith("skip")).length;
-    const errors = tasks.filter(t => t.result?.startsWith("error")).length;
-    console.log(`  downloaded: ${ok}  already existed: ${exist}  skipped (4xx): ${skipped}  errors: ${errors}`);
-
+  // 5. Rewrite all data files
+  for (const [file, data] of Object.entries(dataMap)) {
+    rewriteAll(data, file);
+    const filePath = path.join(DATA_DIR, file);
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-    console.log(`  Saved ${file}`);
+    console.log(`Saved ${file}`);
   }
 
   console.log("\nDone. All data files updated.");
