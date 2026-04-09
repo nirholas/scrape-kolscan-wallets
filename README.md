@@ -71,6 +71,39 @@ Track the best crypto traders. Monitor smart money moves in real time. Discover 
 <img src="assets/architecture.svg" alt="Architecture Diagram" width="100%"/>
 </div>
 
+```
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐     ┌──────────────────┐
+│  DATA SOURCES   │     │    INGESTION     │     │    STORAGE      │     │   APPLICATION    │
+│                 │     │                  │     │                 │     │                  │
+│  KolScan.io     │────>│  scrape.js       │────>│  JSON files     │────>│  Next.js 14      │
+│  GMGN API       │────>│  scrape-axiom.js │     │  (leaderboard,  │     │  (React 18, TS)  │
+│  X / Twitter    │────>│  scrape-x.js     │     │   wallets, X)   │     │                  │
+│                 │     │                  │     │                 │     │  Leaderboards    │
+│                 │     │  ingest-trades   │────>│  PostgreSQL     │────>│  Tracking        │
+│                 │     │  (batch + poll)  │     │  (trades,       │     │  Feed            │
+│                 │     │                  │     │   submissions,  │     │  Community       │
+│                 │     │                  │     │   watchlists,   │     │  Auth            │
+│                 │     │                  │     │   users)        │     │                  │
+└─────────────────┘     └──────────────────┘     └─────────────────┘     └──────────────────┘
+                                                                               │
+                                                                               │
+                                                        ┌──────────────────────┴──────────┐
+                                                        │                                 │
+                                                  ┌─────┴──────┐                ┌─────────┴──────┐
+                                                  │  Bun API   │                │  MCP Server    │
+                                                  │  :3002     │                │  (stdio)       │
+                                                  │  REST/JSON │                │  AI assistants │
+                                                  └────────────┘                └────────────────┘
+```
+
+### Data Flow
+
+**Static Data (JSON files)** — Scrapers run on-demand, writing JSON to disk. The Next.js app reads these files at request time. If local files are missing, it falls back to GitHub raw URLs so the app works without running scrapers.
+
+**Dynamic Data (PostgreSQL)** — Trade ingestion writes trade records to the database. User data (accounts, sessions, watchlists, submissions) lives entirely in PostgreSQL via Drizzle ORM.
+
+**Merge Strategy** — The All Solana view merges KolScan + GMGN data into a unified `UnifiedWallet` format, deduplicated by wallet address with GMGN data taking priority.
+
 <br/>
 
 <img src="assets/divider.svg" width="100%" />

@@ -14,7 +14,7 @@ export function AvatarImg({ src, fallbackChar: _fallbackChar, className }: { src
   );
 }
 
-export function HeaderImg({ src, className, wrapperClassName }: { src: string; className?: string; wrapperClassName?: string }) {
+export function HeaderImg({ src, className }: { src: string; className?: string }) {
   return (
     <img
       src={src}
