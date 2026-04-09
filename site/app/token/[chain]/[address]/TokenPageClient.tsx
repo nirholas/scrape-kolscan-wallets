@@ -9,6 +9,7 @@ import PriceChart from "./components/PriceChart";
 import SecurityCard from "./components/SecurityCard";
 import HolderList from "./components/HolderList";
 import TradesFeed from "./components/TradesFeed";
+import SimilarTokens from "./components/SimilarTokens";
 
 interface TokenData {
   address: string;
@@ -27,6 +28,14 @@ interface TokenData {
   topPairAddress: string | null;
   source: string;
   launchpad: string | null;
+  website: string | null;
+  twitter: string | null;
+  telegram: string | null;
+  discord: string | null;
+  coingeckoId: string | null;
+  marketCapRank: number | null;
+  totalSupply: number | null;
+  circulatingSupply: number | null;
   error?: string;
 }
 
@@ -239,6 +248,23 @@ export default function TokenPageClient({
                 >
                   explorer↗
                 </a>
+                {token.website && (
+                  <a href={token.website} target="_blank" rel="noopener noreferrer" className="text-[10px] text-zinc-600 hover:text-accent transition-colors">🌐 web↗</a>
+                )}
+                {token.twitter && (
+                  <a href={token.twitter} target="_blank" rel="noopener noreferrer" className="text-[10px] text-zinc-600 hover:text-sky-400 transition-colors">𝕏 twitter↗</a>
+                )}
+                {token.telegram && (
+                  <a href={token.telegram} target="_blank" rel="noopener noreferrer" className="text-[10px] text-zinc-600 hover:text-blue-400 transition-colors">✈ telegram↗</a>
+                )}
+                {token.discord && (
+                  <a href={token.discord} target="_blank" rel="noopener noreferrer" className="text-[10px] text-zinc-600 hover:text-indigo-400 transition-colors">💬 discord↗</a>
+                )}
+                {token.marketCapRank && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500 border border-zinc-700">
+                    #{token.marketCapRank} CG
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -279,6 +305,22 @@ export default function TokenPageClient({
             </div>
           ))}
         </div>
+        {(token.circulatingSupply != null || token.totalSupply != null) && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 pt-3 border-t border-border/50">
+            {token.circulatingSupply != null && (
+              <div>
+                <div className="text-[11px] text-zinc-600 uppercase tracking-wider">Circ. Supply</div>
+                <div className="text-sm font-medium text-white tabular-nums mt-0.5">{fmt(token.circulatingSupply, "")}</div>
+              </div>
+            )}
+            {token.totalSupply != null && (
+              <div>
+                <div className="text-[11px] text-zinc-600 uppercase tracking-wider">Total Supply</div>
+                <div className="text-sm font-medium text-white tabular-nums mt-0.5">{fmt(token.totalSupply, "")}</div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Buys/sells */}
         {(token.buys24h != null || token.sells24h != null) && (
@@ -598,6 +640,9 @@ export default function TokenPageClient({
           )
         )}
       </div>
+
+      {/* ── Similar / Trending Tokens ── */}
+      <SimilarTokens chain={chain} currentAddress={address} />
 
       {/* External links footer */}
       <div className="flex items-center gap-3 flex-wrap text-xs text-zinc-600">

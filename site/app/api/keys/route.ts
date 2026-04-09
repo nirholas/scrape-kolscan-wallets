@@ -5,7 +5,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/drizzle/db";
 import { apiKey as apiKeyTable } from "@/drizzle/db/schema";
-import { assertOrigin } from "@/lib/assert-origin";
+import { checkOrigin } from "@/lib/assert-origin";
 
 const MAX_KEYS_PER_USER = 5;
 
@@ -66,7 +66,8 @@ export async function GET(_req: NextRequest) {
 
 /** Create a new API key for the authenticated user */
 export async function POST(req: NextRequest) {
-  assertOrigin(req);
+  const originError = checkOrigin(req);
+  if (originError) return originError as Response;
 
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) {

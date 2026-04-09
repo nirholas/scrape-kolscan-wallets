@@ -6,7 +6,7 @@ import {
   getTierFromApiKey,
   trackRequest,
 } from "@/lib/rate-limit/index";
-import { getData, getGmgnSolData } from "@/lib/data";
+import { getData, getSolGmgnData } from "@/lib/data";
 
 const CACHE_TTL = 300; // 5 minutes
 const cache = new Map<string, { data: unknown; timestamp: number }>();
@@ -64,19 +64,22 @@ export async function GET(request: NextRequest) {
   if (source === "all" || source === "kolscan") {
     try {
       const kolscanData = await getData();
-      for (const w of kolscanData.slice(0, 500)) {
+      kolscanData.slice(0, 500).forEach((w, i) => {
         entries.push({
-          rank: w.rank ?? null,
+          rank: i + 1,
           address: w.wallet_address ?? "",
           name: w.name ?? null,
-          twitter: w.twitter_username ?? null,
+          twitter: w.twitter ?? null,
           chain: "solana",
           source: "kolscan",
-          winRate: w.win_rate ?? null,
-          pnl: w.realized_profit ?? null,
-          volume: w.total_volume ?? null,
+          winRate:
+            w.wins + w.losses > 0
+              ? w.wins / (w.wins + w.losses)
+              : null,
+          pnl: w.profit ?? null,
+          volume: null,
         });
-      }
+      });
     } catch {
       // non-fatal
     }
@@ -84,20 +87,20 @@ export async function GET(request: NextRequest) {
 
   if (source === "all" || source === "gmgn") {
     try {
-      const gmgnData = await getGmgnSolData();
-      for (const w of gmgnData.slice(0, 500)) {
+      const gmgnData = await getSolGmgnData();
+      gmgnData.slice(0, 500).forEach((w, i) => {
         entries.push({
-          rank: w.rank ?? null,
+          rank: i + 1,
           address: w.wallet_address ?? "",
           name: w.name ?? null,
           twitter: w.twitter_username ?? null,
           chain: "solana",
           source: "gmgn",
-          winRate: w.win_rate ?? null,
-          pnl: w.realized_profit ?? null,
-          volume: w.total_volume ?? null,
+          winRate: w.winrate_30d ?? w.winrate_7d ?? null,
+          pnl: w.realized_profit_30d ?? w.realized_profit_7d ?? null,
+          volume: w.volume_30d ?? w.volume_7d ?? null,
         });
-      }
+      });
     } catch {
       // non-fatal
     }

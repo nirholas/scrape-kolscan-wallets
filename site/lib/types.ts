@@ -333,9 +333,31 @@ export interface LeaderboardEntry {
   // Computed metrics  
   compositeScore: number; // 0-100
   avgRank: number;
-  totalPnl: number;
-  avgWinRate: number;
+  totalPnl: number;      // 7d PnL (default timeframe)
+  avgWinRate: number;    // 7d win rate (default timeframe)
   
+  // Multi-timeframe PnL, win rate, trades
+  pnlByTimeframe?: {
+    '24h'?: number;
+    '7d': number;
+    '30d'?: number;
+    'all'?: number;
+  };
+  winRateByTimeframe?: {
+    '24h'?: number;
+    '7d': number;
+    '30d'?: number;
+  };
+  tradesByTimeframe?: {
+    '24h'?: number;
+    '7d': number;
+    '30d'?: number;
+    'all'?: number;
+  };
+
+  // Portfolio value (native token balance + holdings)
+  portfolioValue?: number | null;
+
   // Activity
   lastActive: string | null; // ISO timestamp
   totalTrades: number;

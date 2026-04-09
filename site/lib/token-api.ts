@@ -14,6 +14,15 @@ export interface TokenData {
   sells24h: number | null;
   topPairAddress: string | null;
   launchpad: string | null;
+  // Social & metadata
+  website: string | null;
+  twitter: string | null;
+  telegram: string | null;
+  discord: string | null;
+  coingeckoId: string | null;
+  marketCapRank: number | null;
+  totalSupply: number | null;
+  circulatingSupply: number | null;
   source: string;
   error?: string;
 }
@@ -28,13 +37,18 @@ const GECKOTERMINAL_CHAIN: Record<string, string> = {
   bsc: "bsc",
 };
 
-async function fetchWithTimeout(url: string, ms = 6000): Promise<Response> {
+async function fetchWithTimeout(url: string, ms?: number): Promise<Response>;
+async function fetchWithTimeout(url: string, options: RequestInit, ms: number): Promise<Response>;
+async function fetchWithTimeout(url: string, msOrOptions?: number | RequestInit, ms?: number): Promise<Response> {
+  const options: RequestInit = typeof msOrOptions === "object" ? msOrOptions : {};
+  const timeout = typeof msOrOptions === "number" ? msOrOptions : (ms ?? 6000);
   const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), ms);
+  const id = setTimeout(() => controller.abort(), timeout);
   try {
     const res = await fetch(url, {
+      ...options,
       signal: controller.signal,
-      headers: { Accept: "application/json" },
+      headers: { Accept: "application/json", ...((options.headers as Record<string, string>) ?? {}) },
     });
     return res;
   } finally {
@@ -63,12 +77,20 @@ async function fromDexScreener(
       .sort((a, b) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0));
     const pair = filtered[0] ?? pairs[0];
 
+    // Extract social links from pair info
+    const info = (pair as any).info ?? {};
+    const websites: string[] = info.websites?.map((w: any) => w.url).filter(Boolean) ?? [];
+    const socials: { type: string; url: string }[] = info.socials ?? [];
+    const twitterLink = socials.find((s) => s.type?.toLowerCase() === "twitter")?.url ?? null;
+    const telegramLink = socials.find((s) => s.type?.toLowerCase() === "telegram")?.url ?? null;
+    const discordLink = socials.find((s) => s.type?.toLowerCase() === "discord")?.url ?? null;
+
     return {
       address,
       chain,
       name: pair.baseToken?.name ?? null,
       symbol: pair.baseToken?.symbol ?? null,
-      logo: null, // DexScreener doesn't provide logo in this endpoint
+      logo: info.imageUrl ?? null,
       price: pair.priceUsd ? parseFloat(pair.priceUsd) : null,
       priceChange24h: pair.priceChange?.h24 ?? null,
       volume24h: pair.volume?.h24 ?? null,
@@ -79,6 +101,14 @@ async function fromDexScreener(
       sells24h: pair.txns?.h24?.sells ?? null,
       topPairAddress: pair.pairAddress ?? null,
       launchpad: null,
+      website: websites[0] ?? null,
+      twitter: twitterLink,
+      telegram: telegramLink,
+      discord: discordLink,
+      coingeckoId: null,
+      marketCapRank: null,
+      totalSupply: null,
+      circulatingSupply: null,
       source: "dexscreener",
     };
   } catch {
@@ -128,6 +158,14 @@ async function fromGeckoTerminal(
       sells24h: null,
       topPairAddress,
       launchpad: null,
+      website: null,
+      twitter: null,
+      telegram: null,
+      discord: null,
+      coingeckoId: null,
+      marketCapRank: null,
+      totalSupply: null,
+      circulatingSupply: null,
       source: "geckoterminal",
     };
   } catch {
@@ -135,7 +173,64 @@ async function fromGeckoTerminal(
   }
 }
 
-// ---- Provider 3: Jupiter (Solana only, price-only fallback) ----
+// ---- Provider 3: CoinGecko (market cap rank, supply, social links) ----
+const COINGECKO_PLATFORM: Record<string, string> = {
+  sol: "solana",
+  bsc: "binance-smart-chain",
+};
+
+async function fromCoinGecko(
+  chain: "sol" | "bsc",
+  address: string,
+): Promise<Partial<TokenData> | null> {
+  try {
+    const platform = COINGECKO_PLATFORM[chain];
+    const apiKey = process.env.COINGECKO_API_KEY;
+    const baseUrl = apiKey
+      ? "https://pro-api.coingecko.com/api/v3"
+      : "https://api.coingecko.com/api/v3";
+    const headers: Record<string, string> = apiKey
+      ? { "x-cg-pro-api-key": apiKey }
+      : {};
+
+    const res = await fetchWithTimeout(
+      `${baseUrl}/coins/${platform}/contract/${address}`,
+      { headers },
+      8000,
+    );
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (json.error) return null;
+
+    const links = json.links ?? {};
+    const website = links.homepage?.find((u: string) => u) ?? null;
+    const twitter = links.twitter_screen_name
+      ? `https://x.com/${links.twitter_screen_name}`
+      : null;
+    const telegram = links.telegram_channel_identifier
+      ? `https://t.me/${links.telegram_channel_identifier}`
+      : null;
+    const discord = links.chat_url?.find((u: string) => u?.includes("discord")) ?? null;
+
+    return {
+      logo: json.image?.large ?? json.image?.small ?? null,
+      marketCap: json.market_data?.market_cap?.usd ?? null,
+      fdv: json.market_data?.fully_diluted_valuation?.usd ?? null,
+      marketCapRank: json.market_cap_rank ?? null,
+      coingeckoId: json.id ?? null,
+      totalSupply: json.market_data?.total_supply ?? null,
+      circulatingSupply: json.market_data?.circulating_supply ?? null,
+      website,
+      twitter,
+      telegram,
+      discord,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// ---- Provider 4: Jupiter (Solana only, price-only fallback) ----
 async function fromJupiter(address: string): Promise<{ price: number } | null> {
   try {
     const res = await fetchWithTimeout(
@@ -156,17 +251,53 @@ export async function getTokenData(
   address: string,
   cachedMeta?: { name?: string | null; symbol?: string | null; logo?: string | null },
 ): Promise<TokenData> {
-  // Try providers in order
-  const dex = await fromDexScreener(chain, address);
+  const EMPTY_SOCIALS = {
+    website: null,
+    twitter: null,
+    telegram: null,
+    discord: null,
+    coingeckoId: null,
+    marketCapRank: null,
+    totalSupply: null,
+    circulatingSupply: null,
+  };
+
+  // Fire CoinGecko in parallel with primary providers (best-effort, non-blocking)
+  const cgPromise = fromCoinGecko(chain, address).catch(() => null);
+
+  const [dex, gecko] = await Promise.all([
+    fromDexScreener(chain, address),
+    fromGeckoTerminal(chain, address),
+  ]);
+
+  const cg = await cgPromise;
+
+  function mergeCoinGecko(data: TokenData): TokenData {
+    if (!cg) return data;
+    return {
+      ...data,
+      logo: data.logo ?? cg.logo ?? null,
+      marketCap: data.marketCap ?? cg.marketCap ?? null,
+      fdv: data.fdv ?? cg.fdv ?? null,
+      website: data.website ?? cg.website ?? null,
+      twitter: data.twitter ?? cg.twitter ?? null,
+      telegram: data.telegram ?? cg.telegram ?? null,
+      discord: data.discord ?? cg.discord ?? null,
+      coingeckoId: cg.coingeckoId ?? null,
+      marketCapRank: cg.marketCapRank ?? null,
+      totalSupply: cg.totalSupply ?? null,
+      circulatingSupply: cg.circulatingSupply ?? null,
+    };
+  }
+
   if (dex && dex.price != null) {
-    // Patch logo from cache if missing
+    // Patch metadata from cache if missing
     if (!dex.logo && cachedMeta?.logo) dex.logo = cachedMeta.logo;
     if (!dex.name && cachedMeta?.name) dex.name = cachedMeta.name;
     if (!dex.symbol && cachedMeta?.symbol) dex.symbol = cachedMeta.symbol;
-    return dex;
+    return mergeCoinGecko(dex);
   }
 
-  const gecko = await fromGeckoTerminal(chain, address);
   if (gecko && gecko.price != null) {
     // Merge any extra data from dex (e.g. buys/sells) if dex partially responded
     if (dex) {
@@ -174,15 +305,18 @@ export async function getTokenData(
       gecko.sells24h = gecko.sells24h ?? dex.sells24h;
       gecko.liquidity = gecko.liquidity ?? dex.liquidity;
       gecko.topPairAddress = gecko.topPairAddress ?? dex.topPairAddress;
+      gecko.website = gecko.website ?? dex.website;
+      gecko.twitter = gecko.twitter ?? dex.twitter;
+      gecko.telegram = gecko.telegram ?? dex.telegram;
     }
-    return gecko;
+    return mergeCoinGecko(gecko);
   }
 
   // Jupiter fallback for Solana
   if (chain === "sol") {
     const jup = await fromJupiter(address);
     if (jup) {
-      return {
+      const jupData: TokenData = {
         address,
         chain,
         name: cachedMeta?.name ?? null,
@@ -198,8 +332,10 @@ export async function getTokenData(
         sells24h: null,
         topPairAddress: null,
         launchpad: null,
+        ...EMPTY_SOCIALS,
         source: "jupiter",
       };
+      return mergeCoinGecko(jupData);
     }
   }
 
@@ -220,6 +356,7 @@ export async function getTokenData(
     sells24h: null,
     topPairAddress: null,
     launchpad: null,
+    ...EMPTY_SOCIALS,
     source: "unavailable",
     error: "Price data unavailable",
   };

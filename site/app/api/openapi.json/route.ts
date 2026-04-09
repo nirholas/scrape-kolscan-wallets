@@ -759,10 +759,12 @@ const openApiSpec = {
         type: "apiKey",
         in: "header",
         name: "X-API-Key",
-        description: "API key for external access (coming soon)",
+        description: "API key — obtain from /developer",
       },
     },
   },
+  // Proxy + API-key management paths appended here
+  // (merged into paths above at runtime — kept separate for clarity)
   tags: [
     {
       name: "Wallets",
@@ -800,11 +802,275 @@ const openApiSpec = {
       name: "System",
       description: "Health and status",
     },
+    {
+      name: "Proxy",
+      description: "Proxy endpoints that forward to external data sources with caching, rate limiting, and unified response format",
+    },
+    {
+      name: "Developer",
+      description: "API key management",
+    },
   ],
 };
 
+// ---- Proxy & API-key paths injected at startup ----
+const proxyAndKeyPaths = {
+  "/keys": {
+    get: {
+      summary: "List API keys",
+      description: "List all API keys for the authenticated user.",
+      operationId: "listApiKeys",
+      tags: ["Developer"],
+      security: [{ cookieAuth: [] }],
+      responses: {
+        200: {
+          description: "List of API keys",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean" },
+                  data: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        id: { type: "string" },
+                        name: { type: "string", nullable: true },
+                        keyPrefix: { type: "string", nullable: true },
+                        tier: { type: "string", enum: ["free", "pro"] },
+                        createdAt: { type: "string", format: "date-time" },
+                        lastUsedAt: { type: "string", format: "date-time", nullable: true },
+                        revokedAt: { type: "string", format: "date-time", nullable: true },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        401: { description: "Unauthorized" },
+      },
+    },
+    post: {
+      summary: "Create API key",
+      description: "Generate a new API key (shown once — store it securely).",
+      operationId: "createApiKey",
+      tags: ["Developer"],
+      security: [{ cookieAuth: [] }],
+      requestBody: {
+        required: false,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                name: { type: "string", maxLength: 64 },
+                tier: { type: "string", enum: ["free", "pro"], default: "free" },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        201: {
+          description: "Key created — contains the raw key (shown once)",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean" },
+                  data: {
+                    type: "object",
+                    properties: {
+                      id: { type: "string" },
+                      key: { type: "string", description: "Full API key — store this, not shown again" },
+                      keyPrefix: { type: "string" },
+                      tier: { type: "string" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        401: { description: "Unauthorized" },
+        422: { description: "Key limit reached" },
+      },
+    },
+  },
+  "/keys/{id}": {
+    delete: {
+      summary: "Revoke API key",
+      operationId: "revokeApiKey",
+      tags: ["Developer"],
+      security: [{ cookieAuth: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: {
+        200: { description: "Key revoked" },
+        404: { description: "Not found" },
+      },
+    },
+    patch: {
+      summary: "Rename API key",
+      operationId: "renameApiKey",
+      tags: ["Developer"],
+      security: [{ cookieAuth: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: { name: { type: "string", maxLength: 64 } },
+            },
+          },
+        },
+      },
+      responses: {
+        200: { description: "Updated" },
+        404: { description: "Not found" },
+      },
+    },
+  },
+  "/usage": {
+    get: {
+      summary: "Get API usage",
+      description: "Current usage stats for all API keys belonging to the authenticated user.",
+      operationId: "getApiUsage",
+      tags: ["Developer"],
+      security: [{ cookieAuth: [] }],
+      responses: {
+        200: { description: "Usage data" },
+        401: { description: "Unauthorized" },
+      },
+    },
+  },
+  "/proxy/unified/wallet/{address}": {
+    get: {
+      summary: "Unified wallet lookup",
+      description: "Auto-detect chain and return wallet data from the best available source.",
+      operationId: "getUnifiedWallet",
+      tags: ["Proxy"],
+      security: [{ apiKeyHeader: [] }],
+      parameters: [
+        { name: "address", in: "path", required: true, schema: { type: "string" } },
+        {
+          name: "chain",
+          in: "query",
+          schema: { type: "string", enum: ["auto", "solana", "evm"], default: "auto" },
+        },
+        {
+          name: "chains",
+          in: "query",
+          schema: { type: "string" },
+          description: "Comma-separated EVM chains (e.g. eth,bsc,polygon). Only used when chain=evm.",
+        },
+      ],
+      responses: {
+        200: { description: "Wallet data" },
+        429: { description: "Rate limited" },
+      },
+    },
+  },
+  "/proxy/unified/token/{address}": {
+    get: {
+      summary: "Unified token lookup",
+      description: "Token data aggregated from Birdeye, DexScreener, CoinGecko, and Moralis.",
+      operationId: "getUnifiedToken",
+      tags: ["Proxy"],
+      security: [{ apiKeyHeader: [] }],
+      parameters: [
+        { name: "address", in: "path", required: true, schema: { type: "string" } },
+        {
+          name: "chain",
+          in: "query",
+          schema: { type: "string", default: "solana" },
+          description: "'solana' or any EVM chain (eth, bsc, polygon, …)",
+        },
+      ],
+      responses: {
+        200: { description: "Token data" },
+        429: { description: "Rate limited" },
+      },
+    },
+  },
+  "/proxy/unified/trending": {
+    get: {
+      summary: "Cross-chain trending tokens",
+      description: "Trending tokens from Birdeye (Solana) and CoinGecko/DexScreener (EVM), merged into a single list.",
+      operationId: "getUnifiedTrending",
+      tags: ["Proxy"],
+      security: [{ apiKeyHeader: [] }],
+      parameters: [
+        {
+          name: "chains",
+          in: "query",
+          schema: { type: "string", default: "solana,eth" },
+          description: "Comma-separated chain list",
+        },
+        {
+          name: "limit",
+          in: "query",
+          schema: { type: "integer", default: 20, maximum: 100 },
+        },
+      ],
+      responses: {
+        200: { description: "Trending tokens" },
+        429: { description: "Rate limited" },
+      },
+    },
+  },
+  "/proxy/unified/leaderboard": {
+    get: {
+      summary: "Cross-source KOL leaderboard",
+      description: "KolScan and GMGN leaderboards merged and deduplicated.",
+      operationId: "getUnifiedLeaderboard",
+      tags: ["Proxy"],
+      security: [{ apiKeyHeader: [] }],
+      parameters: [
+        {
+          name: "source",
+          in: "query",
+          schema: { type: "string", enum: ["all", "kolscan", "gmgn"], default: "all" },
+        },
+        {
+          name: "sortBy",
+          in: "query",
+          schema: { type: "string", enum: ["rank", "pnl", "winRate", "volume"], default: "rank" },
+        },
+        {
+          name: "limit",
+          in: "query",
+          schema: { type: "integer", default: 50, maximum: 200 },
+        },
+        {
+          name: "offset",
+          in: "query",
+          schema: { type: "integer", default: 0 },
+        },
+      ],
+      responses: {
+        200: { description: "Leaderboard data" },
+        429: { description: "Rate limited" },
+      },
+    },
+  },
+};
+
 export async function GET() {
-  return NextResponse.json(openApiSpec, {
+  const merged = {
+    ...openApiSpec,
+    paths: {
+      ...openApiSpec.paths,
+      ...proxyAndKeyPaths,
+    },
+  };
+  return NextResponse.json(merged, {
     headers: {
       "Cache-Control": "public, max-age=3600",
       "Content-Type": "application/json",

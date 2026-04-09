@@ -4,14 +4,15 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { db } from "@/drizzle/db";
 import { apiKey as apiKeyTable } from "@/drizzle/db/schema";
-import { assertOrigin } from "@/lib/assert-origin";
+import { checkOrigin } from "@/lib/assert-origin";
 
 /** Revoke an API key – sets revokedAt to now */
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  assertOrigin(req);
+  const originError = checkOrigin(req);
+  if (originError) return originError as Response;
 
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) {
@@ -51,7 +52,8 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  assertOrigin(req);
+  const originError2 = checkOrigin(req);
+  if (originError2) return originError2 as Response;
 
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) {
