@@ -7,12 +7,13 @@ import { user } from "@/drizzle/db/schema";
 
 export async function POST() {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user?.id || !session.user.email) {
+  if (!session?.user?.id) {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 
-  const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase();
-  if (!adminEmail || session.user.email.toLowerCase() !== adminEmail) {
+  const adminUsername = process.env.ADMIN_USERNAME?.toLowerCase();
+  const userUsername = ((session.user as Record<string, unknown>).username as string)?.toLowerCase();
+  if (!adminUsername || !userUsername || userUsername !== adminUsername) {
     return NextResponse.json({ ok: false }, { status: 403 });
   }
 

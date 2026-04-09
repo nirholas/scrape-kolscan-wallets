@@ -1,4 +1,4 @@
-import type { KolEntry, GmgnWallet, UnifiedWallet } from "./types";
+import type { KolEntry, GmgnWallet, UnifiedWallet, XProfile } from "./types";
 
 const KOLSCAN_DATA_URL =
   "https://raw.githubusercontent.com/nirholas/scrape-kolscan-wallets/main/output/kolscan-leaderboard.json";
@@ -198,4 +198,53 @@ export async function getAllSolanaWallets(): Promise<UnifiedWallet[]> {
 export async function getBscWallets(): Promise<UnifiedWallet[]> {
   const bsc = await getBscGmgnData();
   return gmgnToUnified(bsc);
+}
+
+// --- X Profile Data ---
+const X_PROFILES_URL =
+  "https://raw.githubusercontent.com/nirholas/scrape-kolscan-wallets/main/site/data/x-profiles.json";
+
+let xProfilesCache: Record<string, XProfile> | null = null;
+
+export async function getXProfiles(): Promise<Record<string, XProfile>> {
+  if (xProfilesCache) return xProfilesCache;
+
+  try {
+    const fs = await import("fs");
+    const path = await import("path");
+    const filePath = path.join(process.cwd(), "data", "x-profiles.json");
+    if (fs.existsSync(filePath)) {
+      xProfilesCache = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+      return xProfilesCache!;
+    }
+  } catch {
+    // fs not available
+  }
+
+  try {
+    const res = await fetch(X_PROFILES_URL);
+    if (res.ok) {
+      xProfilesCache = await res.json();
+      return xProfilesCache!;
+    }
+  } catch {
+    // fetch failed
+  }
+
+  return {};
+}
+
+/** Look up an X profile by twitter URL or username */
+export function getXProfile(
+  profiles: Record<string, XProfile>,
+  twitterUrlOrUsername: string | null
+): XProfile | null {
+  if (!twitterUrlOrUsername) return null;
+  const match = twitterUrlOrUsername.match(
+    /(?:x\.com|twitter\.com)\/([A-Za-z0-9_]+)/
+  );
+  const username = match ? match[1].toLowerCase() : twitterUrlOrUsername.toLowerCase();
+  const profile = profiles[username];
+  if (profile && !profile.error) return profile;
+  return null;
 }

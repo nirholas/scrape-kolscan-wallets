@@ -67,3 +67,40 @@ code {
 .prose code:not(pre code) {
   @apply bg-bg-card px-1.5 py-0.5 rounded-md text-accent text-[0.85em] font-mono;
 }
+
+/* Iridescent / holographic glow */
+@keyframes iridescent {
+  0%   { filter: hue-rotate(0deg)   brightness(1);   }
+  25%  { filter: hue-rotate(60deg)  brightness(1.1);  }
+  50%  { filter: hue-rotate(180deg) brightness(1.15); }
+  75%  { filter: hue-rotate(270deg) brightness(1.1);  }
+  100% { filter: hue-rotate(360deg) brightness(1);    }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+
+.hero-keycap {
+  animation: float 5s ease-in-out infinite;
+}
+
+.iridescent-glow {
+  background: conic-gradient(
+    from 0deg,
+    #ff0080, #ff8c00, #40e0d0, #00bfff,
+    #8a2be2, #ff0080
+  );
+  animation: iridescent 6s linear infinite;
+}
+
+@keyframes chart-draw {
+  from { stroke-dashoffset: 200; }
+  to   { stroke-dashoffset: 0; }
+}
+
+.chart-line {
+  stroke-dasharray: 200;
+  animation: chart-draw 2s ease-out forwards;
+}

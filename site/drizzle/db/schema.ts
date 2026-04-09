@@ -1,5 +1,6 @@
 import {
   boolean,
+  doublePrecision,
   index,
   integer,
   pgTable,
@@ -16,6 +17,8 @@ export const user = pgTable("user", {
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
   role: text("role").notNull().default("user"),
+  username: varchar("username", { length: 20 }).unique(),
+  displayUsername: varchar("display_username", { length: 20 }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -101,6 +104,66 @@ export const walletVouch = pgTable(
   (table) => {
     return {
       pk: primaryKey({ columns: [table.userId, table.submissionId] }),
+    };
+  },
+);
+
+export const walletAddress = pgTable("wallet_address", {
+  id: text("id").primaryKey(),
+  walletAddress: text("wallet_address").notNull(),
+  chainId: integer("chain_id").notNull(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// --- Trade Feed ---
+
+export const trade = pgTable(
+  "trade",
+  {
+    id: text("id").primaryKey(), // ulid or uuid
+    walletAddress: varchar("wallet_address", { length: 96 }).notNull(),
+    chain: text("chain").notNull(), // "sol" | "bsc"
+    type: text("type").notNull(), // "buy" | "sell"
+    tokenAddress: varchar("token_address", { length: 96 }).notNull(),
+    tokenSymbol: varchar("token_symbol", { length: 32 }),
+    tokenName: varchar("token_name", { length: 120 }),
+    amountUsd: doublePrecision("amount_usd"),
+    amountToken: doublePrecision("amount_token"),
+    priceUsd: doublePrecision("price_usd"),
+    txHash: varchar("tx_hash", { length: 128 }),
+    source: text("source").notNull().default("gmgn"), // "gmgn" | "onchain"
+    walletLabel: varchar("wallet_label", { length: 120 }),
+    tradedAt: timestamp("traded_at").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => {
+    return {
+      walletIdx: index("trade_wallet_idx").on(table.walletAddress),
+      chainIdx: index("trade_chain_idx").on(table.chain),
+      tradedAtIdx: index("trade_traded_at_idx").on(table.tradedAt),
+      tokenIdx: index("trade_token_idx").on(table.tokenAddress),
+    };
+  },
+);
+
+export const watchlist = pgTable(
+  "watchlist",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    walletAddress: varchar("wallet_address", { length: 96 }).notNull(),
+    chain: text("chain").notNull(),
+    label: varchar("label", { length: 120 }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => {
+    return {
+      pk: primaryKey({ columns: [table.userId, table.walletAddress] }),
+      userIdx: index("watchlist_user_idx").on(table.userId),
     };
   },
 );

@@ -59,6 +59,24 @@ export interface UnifiedWallet {
   avatar: string | null;
 }
 
+// X/Twitter profile data (scraped via xactions)
+export interface XProfile {
+  username: string;
+  name: string | null;
+  bio: string | null;
+  location: string | null;
+  website: string | null;
+  avatar: string | null;
+  header: string | null;
+  followers: number;
+  following: number;
+  tweets: number;
+  verified: boolean;
+  joinDate: string | null;
+  scrapedAt: string;
+  error?: string;
+}
+
 export type SortField = "name" | "profit" | "wins" | "losses" | "winrate";
 export type GmgnSortField = "name" | "profit_1d" | "profit_7d" | "profit_30d" | "winrate_7d" | "buys_7d" | "sells_7d";
 export type SortDir = "asc" | "desc";

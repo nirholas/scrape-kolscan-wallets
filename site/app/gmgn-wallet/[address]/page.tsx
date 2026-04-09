@@ -1,4 +1,4 @@
-import { getSolGmgnData, getBscGmgnData } from "@/lib/data";
+import { getSolGmgnData, getBscGmgnData, getXProfiles, getXProfile } from "@/lib/data";
 
 function truncate(addr: string) {
   if (addr.startsWith("0x")) return addr.slice(0, 6) + "..." + addr.slice(-4);
@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: { params: { address: string }
 }
 
 export default async function GmgnWalletPage({ params, searchParams }: { params: { address: string }; searchParams: { chain?: string } }) {
-  const [sol, bsc] = await Promise.all([getSolGmgnData(), getBscGmgnData()]);
+  const [sol, bsc, xProfiles] = await Promise.all([getSolGmgnData(), getBscGmgnData(), getXProfiles()]);
   const all = [...sol, ...bsc];
   const wallet = all.find((w) => w.wallet_address === params.address);
 
@@ -54,6 +54,8 @@ export default async function GmgnWalletPage({ params, searchParams }: { params:
       </main>
     );
   }
+
+  const xProfile = getXProfile(xProfiles, wallet.twitter_username);
 
   const chain = wallet.chain;
   const explorer = chain === "bsc" ? "https://bscscan.com/address" : "https://solscan.io/account";
@@ -88,8 +90,8 @@ export default async function GmgnWalletPage({ params, searchParams }: { params:
     <main className="max-w-5xl mx-auto px-6 py-10 animate-fade-in">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-8">
-        {wallet.avatar ? (
-          <img src={wallet.avatar} alt="" className="w-12 h-12 rounded-xl shadow-glow" />
+        {(xProfile?.avatar || wallet.avatar) ? (
+          <img src={xProfile?.avatar || wallet.avatar!} alt="" className="w-12 h-12 rounded-xl shadow-glow" />
         ) : (
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-xl font-bold text-white shadow-glow">
             {wallet.name.charAt(0).toUpperCase()}
@@ -98,6 +100,9 @@ export default async function GmgnWalletPage({ params, searchParams }: { params:
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-xl font-bold text-white tracking-tight">{wallet.name}</h1>
+            {xProfile?.verified && (
+              <span className="text-blue-400 text-sm" title="Verified">✓</span>
+            )}
             <span className="text-[10px] px-2 py-0.5 rounded border bg-zinc-800/50 text-zinc-400 border-zinc-700 uppercase">
               {chain}
             </span>
@@ -113,8 +118,19 @@ export default async function GmgnWalletPage({ params, searchParams }: { params:
               <a href={`https://x.com/${wallet.twitter_username}`} target="_blank" rel="noopener noreferrer"
                 className="text-zinc-500 hover:text-white transition-colors text-sm">𝕏</a>
             )}
+            {xProfile && (
+              <span className="text-zinc-600 text-xs">
+                {xProfile.followers >= 1000
+                  ? `${(xProfile.followers / 1000).toFixed(1)}K`
+                  : xProfile.followers}{" "}
+                followers
+              </span>
+            )}
           </div>
-          <a
+          {xProfile?.bio && (
+            <p className="text-zinc-400 text-xs mt-1 line-clamp-2 max-w-lg">{xProfile.bio}</p>
+          )}
+          <aa
             href={`${explorer}/${params.address}`}
             target="_blank"
             rel="noopener noreferrer"
@@ -140,7 +156,7 @@ export default async function GmgnWalletPage({ params, searchParams }: { params:
       {/* Stats Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
         {[
-          { label: "Follow Count", value: wallet.follow_count.toLocaleString(), color: "text-white" },
+          { label: "X Followers", value: (xProfile?.followers ?? wallet.follow_count).toLocaleString(), color: "text-white" },
           { label: "Category", value: CATEGORY_LABELS[wallet.category] || wallet.category, color: "text-purple-400" },
           { label: "Balance", value: `${wallet.balance.toFixed(2)} ${nativeSymbol}`, color: "text-white" },
           {

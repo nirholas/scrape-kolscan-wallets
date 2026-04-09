@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getData, getSolGmgnData, getBscGmgnData } from "@/lib/data";
+import RecentTradesPreview from "./components/RecentTradesPreview";
 
 export default async function Home() {
   const [kolscanData, solGmgn, bscGmgn] = await Promise.all([
@@ -72,27 +73,70 @@ export default async function Home() {
             </div>
           </div>
 
-          {/* Right — visual element */}
+          {/* Right — 3D keycap with iridescent glow */}
           <div className="hidden lg:flex items-center justify-center relative">
-            <div className="relative w-72 h-72">
-              {/* Outer ring */}
-              <div className="absolute inset-0 rounded-3xl border border-border/60 rotate-6" />
-              <div className="absolute inset-3 rounded-2xl border border-border/40 -rotate-3" />
-              {/* Inner cube face */}
-              <div className="absolute inset-6 rounded-2xl bg-gradient-to-br from-bg-card to-bg-elevated border border-border flex items-center justify-center shadow-elevated">
-                <div className="text-center">
-                  <div className="text-5xl font-extrabold text-white mb-1">{allSolAddresses.size.toLocaleString()}</div>
-                  <div className="text-xs text-zinc-500 uppercase tracking-widest">Wallets Tracked</div>
+            <div className="relative hero-keycap">
+              {/* Iridescent reflection underneath */}
+              <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-64 h-32 rounded-full iridescent-glow opacity-40 blur-2xl" />
+              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-48 h-20 rounded-full iridescent-glow opacity-60 blur-xl" />
+
+              {/* Keycap body */}
+              <div className="relative w-64 h-64 rounded-[2rem] bg-gradient-to-b from-zinc-800 to-zinc-900 shadow-[0_20px_60px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.08)] border border-zinc-700/50">
+                {/* Inner face */}
+                <div className="absolute inset-3 rounded-[1.5rem] bg-gradient-to-br from-zinc-900 via-[#0d0d0d] to-black border border-zinc-800/60 flex items-center justify-center overflow-hidden">
+                  {/* Pumping chart SVG */}
+                  <svg viewBox="0 0 120 80" className="w-36 h-24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    {/* Grid lines */}
+                    <line x1="0" y1="20" x2="120" y2="20" stroke="#222" strokeWidth="0.5" />
+                    <line x1="0" y1="40" x2="120" y2="40" stroke="#222" strokeWidth="0.5" />
+                    <line x1="0" y1="60" x2="120" y2="60" stroke="#222" strokeWidth="0.5" />
+                    {/* Glow under the line */}
+                    <defs>
+                      <linearGradient id="chartGrad" x1="0" y1="0" x2="120" y2="0">
+                        <stop offset="0%" stopColor="#22c55e" stopOpacity="0.6" />
+                        <stop offset="100%" stopColor="#4ade80" stopOpacity="1" />
+                      </linearGradient>
+                      <linearGradient id="fillGrad" x1="60" y1="10" x2="60" y2="75" gradientUnits="userSpaceOnUse">
+                        <stop offset="0%" stopColor="#22c55e" stopOpacity="0.3" />
+                        <stop offset="100%" stopColor="#22c55e" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                    {/* Area fill */}
+                    <path d="M10 65 L25 58 L40 62 L55 50 L65 45 L75 38 L85 25 L95 18 L110 8 L110 75 L10 75 Z" fill="url(#fillGrad)" />
+                    {/* Chart line — pumping up */}
+                    <polyline
+                      points="10,65 25,58 40,62 55,50 65,45 75,38 85,25 95,18 110,8"
+                      stroke="url(#chartGrad)"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="chart-line"
+                    />
+                    {/* Glowing dot at peak */}
+                    <circle cx="110" cy="8" r="3" fill="#4ade80">
+                      <animate attributeName="opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx="110" cy="8" r="6" fill="#22c55e" opacity="0.2">
+                      <animate attributeName="r" values="6;10;6" dur="2s" repeatCount="indefinite" />
+                      <animate attributeName="opacity" values="0.2;0;0.2" dur="2s" repeatCount="indefinite" />
+                    </circle>
+                    {/* Dollar sign */}
+                    <text x="16" y="22" fill="#4ade80" fontSize="14" fontWeight="bold" opacity="0.6" fontFamily="Inter, sans-serif">$</text>
+                  </svg>
                 </div>
+
+                {/* Keycap top highlight */}
+                <div className="absolute top-3 left-6 right-6 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
               </div>
-              {/* Accent accents */}
-              <div className="absolute -bottom-4 -right-4 w-24 h-24 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center">
-                <div className="text-accent text-lg font-bold">{kolscanWallets}</div>
-                <div className="absolute -bottom-5 text-[10px] text-zinc-600">KOLs</div>
+
+              {/* Floating stat badges */}
+              <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-2xl bg-bg-card/90 backdrop-blur border border-border flex flex-col items-center justify-center shadow-elevated">
+                <div className="text-buy text-lg font-bold">{kolscanWallets}</div>
+                <div className="text-[9px] text-zinc-600 uppercase tracking-wider">KOLs</div>
               </div>
-              <div className="absolute -top-3 -left-3 w-20 h-20 rounded-2xl bg-buy/10 border border-buy/20 flex items-center justify-center">
-                <div className="text-buy text-sm font-bold">{solGmgn.length.toLocaleString()}</div>
-                <div className="absolute -bottom-5 text-[10px] text-zinc-600">GMGN</div>
+              <div className="absolute -top-4 -left-4 w-20 h-20 rounded-2xl bg-bg-card/90 backdrop-blur border border-border flex flex-col items-center justify-center shadow-elevated">
+                <div className="text-accent text-lg font-bold">{solGmgn.length.toLocaleString()}</div>
+                <div className="text-[9px] text-zinc-600 uppercase tracking-wider">GMGN</div>
               </div>
             </div>
           </div>
@@ -124,6 +168,9 @@ export default async function Home() {
           ))}
         </div>
       </div>
+
+      {/* Live trade feed preview */}
+      <RecentTradesPreview />
 
       {/* Three-column preview tables */}
       <div className="max-w-7xl mx-auto px-6 py-16">
@@ -263,18 +310,6 @@ export default async function Home() {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="border-t border-border">
-        <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <span className="text-zinc-600 text-xs">KolQuest</span>
-          <div className="flex items-center gap-6 text-xs text-zinc-600">
-            <a href="https://gmgn.ai/r/nichxbt" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">GMGN</a>
-            <a href="https://trade.padre.gg/rk/nich" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Padre</a>
-            <Link href="/writeup" className="hover:text-white transition-colors">Writeup</Link>
-            <a href="https://github.com/nirholas/scrape-kolscan-wallets" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">GitHub</a>
-          </div>
-        </div>
-      </footer>
     </main>
   );
 }

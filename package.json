@@ -6,15 +6,28 @@
   "scripts": {
     "scrape": "node scrape.js",
     "scrape:axiom": "node scrape-axiom.js",
+    "scrape:x": "node scrape-x-profiles.js",
     "setup": "npm install && npx playwright install chromium && sudo npx playwright install-deps chromium",
     "api": "bun api/index.ts",
     "mcp": "bun mcp/index.ts",
     "dev": "cd site && npm run dev",
     "build": "cd site && npm run build"
   },
-  "keywords": ["kolscan", "gmgn", "solana", "bsc", "kol", "scraper", "leaderboard", "crypto", "smart-money", "mcp"],
+  "keywords": [
+    "kolscan",
+    "gmgn",
+    "solana",
+    "bsc",
+    "kol",
+    "scraper",
+    "leaderboard",
+    "crypto",
+    "smart-money",
+    "mcp"
+  ],
   "license": "MIT",
   "dependencies": {
-    "playwright": "^1.50.0"
+    "playwright": "^1.50.0",
+    "xactions": "^3.1.0"
   }
 }

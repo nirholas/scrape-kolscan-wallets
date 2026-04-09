@@ -5,9 +5,43 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 
 export const metadata: Metadata = {
-  title: "KolQuest — Smart Wallet Intelligence",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || "https://kol.quest"),
+  title: {
+    default: "KolQuest — Smart Wallet Intelligence",
+    template: "%s | KolQuest",
+  },
   description:
     "Track the smartest crypto wallets — KolScan KOLs, GMGN smart money, Solana & BSC. Leaderboards, analytics, and copy-trade tools.",
+  keywords: [
+    "crypto wallet tracker",
+    "smart money",
+    "KOL wallets",
+    "Solana wallets",
+    "BSC wallets",
+    "GMGN",
+    "KolScan",
+    "copy trade",
+    "wallet analytics",
+    "crypto leaderboard",
+    "degen wallets",
+    "sniper wallets",
+  ],
+  robots: { index: true, follow: true },
+  openGraph: {
+    type: "website",
+    siteName: "KolQuest",
+    title: "KolQuest — Smart Wallet Intelligence",
+    description:
+      "Track the smartest crypto wallets. KolScan KOLs, GMGN smart money, Solana & BSC leaderboards.",
+    images: [{ url: "/api/og", width: 1200, height: 630, alt: "KolQuest" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "KolQuest — Smart Wallet Intelligence",
+    description:
+      "Track the smartest crypto wallets. KolScan KOLs, GMGN smart money, Solana & BSC leaderboards.",
+    images: ["/api/og"],
+  },
 };
 
 function NavDropdown({ label, items }: { label: string; items: { href: string; label: string; desc?: string }[] }) {
@@ -78,10 +112,17 @@ async function Nav() {
               All Solana
             </Link>
             <Link
-              href="/writeup"
+              href="/feed"
+              className="px-3 py-1.5 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-bg-hover transition-all duration-200 flex items-center gap-1.5"
+            >
+              Feed
+              <span className="w-1.5 h-1.5 rounded-full bg-buy animate-pulse" />
+            </Link>
+            <Link
+              href="/docs"
               className="px-3 py-1.5 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-bg-hover transition-all duration-200"
             >
-              Writeup
+              Docs
             </Link>
             <Link
               href="/community"
@@ -126,11 +167,82 @@ async function Nav() {
             href="/auth"
             className="inline-flex items-center gap-1.5 bg-white text-black hover:bg-zinc-200 rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200"
           >
-            {session?.user?.email ? `Account (${session.user.email.split("@")[0]})` : "Sign in"}
+            {session?.user ? `Account (${(session.user as Record<string, unknown>).username || session.user.name || "user"})` : "Sign in"}
           </Link>
         </div>
       </div>
     </nav>
+  );
+}
+
+function SiteFooter() {
+  const year = new Date().getFullYear();
+
+  return (
+    <footer className="border-t border-border bg-bg-primary/80 backdrop-blur-xl">
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="grid gap-10 md:grid-cols-[1.5fr_1fr_1fr_1fr]">
+          <div>
+            <Link href="/" className="inline-flex items-center gap-2 group mb-4">
+              <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-black font-bold text-sm">
+                K
+              </div>
+              <span className="text-white font-semibold text-[15px] tracking-tight">
+                Kol<span className="text-accent">Quest</span>
+              </span>
+            </Link>
+            <p className="text-sm text-zinc-500 leading-relaxed max-w-sm">
+              Smart wallet intelligence for Solana and BSC. Discover high-signal wallets,
+              compare performance, and monitor trends across top traders.
+            </p>
+          </div>
+
+          <div>
+            <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Platform</h3>
+            <ul className="space-y-2 text-sm text-zinc-500">
+              <li><Link href="/leaderboard" className="hover:text-white transition-colors">Leaderboard</Link></li>
+              <li><Link href="/all-solana" className="hover:text-white transition-colors">All Solana</Link></li>
+              <li><Link href="/bsc" className="hover:text-white transition-colors">BSC Wallets</Link></li>
+              <li><Link href="/submit" className="hover:text-white transition-colors">Submit Wallet</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Resources</h3>
+            <ul className="space-y-2 text-sm text-zinc-500">
+              <li><Link href="/docs" className="hover:text-white transition-colors">Docs</Link></li>
+              <li><Link href="/community" className="hover:text-white transition-colors">Community</Link></li>
+              <li>
+                <a href="https://github.com/nirholas/scrape-kolscan-wallets" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                  GitHub
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Data Sources</h3>
+            <ul className="space-y-2 text-sm text-zinc-500">
+              <li>
+                <a href="https://gmgn.ai/r/nichxbt" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                  GMGN
+                </a>
+              </li>
+              <li>
+                <a href="https://trade.padre.gg/rk/nich" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                  Padre
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="mt-10 pt-5 border-t border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <p className="text-xs text-zinc-600">© {year} KolQuest. All rights reserved.</p>
+          <p className="text-xs text-zinc-600">Built for transparent, data-driven crypto research.</p>
+        </div>
+      </div>
+    </footer>
   );
 }
 
@@ -146,6 +258,7 @@ export default function RootLayout({
         <div className="min-h-[calc(100vh-4rem)]">
           {children}
         </div>
+        <SiteFooter />
       </body>
     </html>
   );

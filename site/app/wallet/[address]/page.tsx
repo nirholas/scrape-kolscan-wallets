@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getData } from "@/lib/data";
+import { getData, getXProfiles, getXProfile } from "@/lib/data";
 import PnlCalendar from "@/app/components/PnlCalendar";
 
 function truncate(addr: string) {
@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: { params: { address: string }
 }
 
 export default async function WalletPage({ params }: { params: { address: string } }) {
-  const data = await getData();
+  const [data, xProfiles] = await Promise.all([getData(), getXProfiles()]);
   const entries = data.filter((e) => e.wallet_address === params.address);
 
   if (entries.length === 0) {
@@ -45,6 +45,7 @@ export default async function WalletPage({ params }: { params: { address: string
   const name = entries[0].name;
   const twitter = entries[0].twitter;
   const telegram = entries[0].telegram;
+  const xProfile = getXProfile(xProfiles, twitter);
 
   const timeframeLabel = (tf: number) =>
     tf === 1 ? "Daily" : tf === 7 ? "Weekly" : "Monthly";
@@ -80,12 +81,19 @@ export default async function WalletPage({ params }: { params: { address: string
     <main className="max-w-5xl mx-auto px-6 py-10 animate-fade-in">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-8">
+        {xProfile?.avatar ? (
+          <img src={xProfile.avatar} alt="" className="w-12 h-12 rounded-xl shadow-glow" />
+        ) : (
         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-buy to-emerald-600 flex items-center justify-center text-xl font-bold text-white shadow-glow">
           {name.charAt(0).toUpperCase()}
         </div>
+        )}
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-xl font-bold text-white tracking-tight">{name}</h1>
+            {xProfile?.verified && (
+              <span className="text-blue-400 text-sm" title="Verified">✓</span>
+            )}
             {twitter && (
               <a href={twitter} target="_blank" rel="noopener noreferrer"
                 className="text-zinc-500 hover:text-white transition-colors text-sm" title="Twitter/X">
@@ -98,7 +106,18 @@ export default async function WalletPage({ params }: { params: { address: string
                 ✈
               </a>
             )}
+            {xProfile && (
+              <span className="text-zinc-600 text-xs">
+                {xProfile.followers >= 1000
+                  ? `${(xProfile.followers / 1000).toFixed(1)}K`
+                  : xProfile.followers}{" "}
+                followers
+              </span>
+            )}
           </div>
+          {xProfile?.bio && (
+            <p className="text-zinc-400 text-xs mt-1 line-clamp-2 max-w-lg">{xProfile.bio}</p>
+          )}
           <a
             href={`https://solscan.io/account/${params.address}`}
             target="_blank"
