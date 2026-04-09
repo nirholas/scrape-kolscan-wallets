@@ -1,11 +1,10 @@
 "use client";
 
-import { Suspense, useMemo, useState, useEffect } from "react";
+import React, { Suspense, useMemo, useState, useEffect } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import type {
   EnrichedSolanaWallet,
-  EnrichedSortField,
   SortDir,
   Timeframe,
   WalletExpandData,
@@ -73,7 +72,7 @@ function Sparkline({ values }: { values: number[] }) {
 
 // ─── Expand Panel ─────────────────────────────────────────────────────────────
 
-function ExpandPanel({ address, onClose }: { address: string; onClose: () => void }) {
+function ExpandPanel({ address, colSpan, onClose }: { address: string; colSpan: number; onClose: () => void }) {
   const [data, setData] = useState<WalletExpandData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -98,7 +97,7 @@ function ExpandPanel({ address, onClose }: { address: string; onClose: () => voi
 
   return (
     <tr>
-      <td colSpan={11} className="px-0 py-0">
+      <td colSpan={colSpan} className="px-0 py-0">
         <div className="bg-zinc-950 border-y border-zinc-800 px-5 py-4 text-xs">
           {loading && (
             <div className="flex items-center gap-2 text-zinc-500 py-3">
@@ -233,25 +232,12 @@ function ExpandPanel({ address, onClose }: { address: string; onClose: () => voi
 
 // ─── Filter Bar ───────────────────────────────────────────────────────────────
 
-interface FilterState {
-  timeframe: Timeframe;
-  sort: string;
-  dir: SortDir;
-  search: string;
-  category: string;
-  minWinrate: string;
-  activeWithin: string;
-  hasTwitter: string;
-  smartTag: string;
-  minPortfolio: string;
-}
-
 function useFilterState() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
 
-  const state: FilterState = {
+  const state = {
     timeframe: (Number(searchParams.get("tf")) as Timeframe) || 7,
     sort: searchParams.get("sort") || "profit_7d",
     dir: (searchParams.get("dir") as SortDir) || "desc",
@@ -432,16 +418,16 @@ function EnrichedSolanaTableInner({
       if (sortField === "winrate_7d" || sortField === "winrate_30d") {
         const key =
           timeframe === 30 ? "winrate_30d" : timeframe === 1 ? "winrate_1d" : "winrate_7d";
-        const av = (a as Record<string, number>)[key] ?? 0;
-        const bv = (b as Record<string, number>)[key] ?? 0;
+        const av = (a as unknown as Record<string, number>)[key] ?? 0;
+        const bv = (b as unknown as Record<string, number>)[key] ?? 0;
         return sortDir === "asc" ? av - bv : bv - av;
       }
       let aKey = sortField;
       if (sortField.startsWith("profit_")) aKey = profitField;
       if (sortField.startsWith("buys_")) aKey = buysField;
       if (sortField.startsWith("sells_")) aKey = sellsField;
-      const av = (a as Record<string, number>)[aKey] ?? 0;
-      const bv = (b as Record<string, number>)[aKey] ?? 0;
+      const av = (a as unknown as Record<string, number>)[aKey] ?? 0;
+      const bv = (b as unknown as Record<string, number>)[aKey] ?? 0;
       return sortDir === "asc" ? av - bv : bv - av;
     });
 
@@ -551,7 +537,7 @@ function EnrichedSolanaTableInner({
             )}
           </div>
           <ExportButton
-            wallets={filtered}
+            wallets={filtered.map((w) => ({ wallet_address: w.wallet_address, name: w.name, chain: "sol" as const }))}
             filename="kolquest-all-solana"
           />
           <ShareButtons title={`KolQuest ${title}`} />
@@ -712,11 +698,9 @@ function EnrichedSolanaTableInner({
             </thead>
             <tbody>
               {filtered.map((w, i) => {
-                  (w as Record<string, number>)[profitField] || 0;
-                const buys =
-                  (w as Record<string, number>)[buysField] || 0;
-                const sells =
-                  (w as Record<string, number>)[sellsField] || 0;
+                const profit = (w as unknown as Record<string, number>)[profitField] || 0;
+                const buys = (w as unknown as Record<string, number>)[buysField] || 0;
+                const sells = (w as unknown as Record<string, number>)[sellsField] || 0;
                 const wr =
                   timeframe === 1
                     ? w.winrate_1d
@@ -732,7 +716,7 @@ function EnrichedSolanaTableInner({
                 const isExpanded = expandedAddress === w.wallet_address;
 
                 return (
-                  <tbody key={w.wallet_address}>
+                  <React.Fragment key={w.wallet_address}>
                     <tr
                       onClick={() => toggleRow(w.wallet_address)}
                       className={`border-b border-zinc-900 last:border-b-0 transition-colors group cursor-pointer ${
@@ -924,12 +908,12 @@ function EnrichedSolanaTableInner({
                     {/* Expanded row */}
                     {isExpanded && (
                       <ExpandPanel
-                        key={`expand-${w.wallet_address}`}
                         address={w.wallet_address}
+                        colSpan={hasEnrichedData ? 12 : 9}
                         onClose={() => setExpandedAddress(null)}
                       />
                     )}
-                  </tbody>
+                  </React.Fragment>
                 );
               })}
 

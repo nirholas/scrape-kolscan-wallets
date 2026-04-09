@@ -132,6 +132,9 @@ export default function DesktopNavLinks() {
       <Link href="/docs" className={linkCls("/docs")}>
         Docs
       </Link>
+      <Link href="/developer" className={linkCls("/developer")}>
+        API
+      </Link>
       <Link href="/community" className={linkCls("/community")}>
         Community
       </Link>

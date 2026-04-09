@@ -5,7 +5,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import LeaderboardTable from "./components/LeaderboardTable";
 import Filters from "./components/Filters";
 import ShareButtons from "../components/ShareButtons";
-import type { LeaderboardResponse, LeaderboardQuery } from "@/lib/types";
+import type { LeaderboardResponse, LeaderboardQuery, LeaderboardTimeframe } from "@/lib/types";
 
 function EnhancedLeaderboardInner({
   initialData,
@@ -19,6 +19,7 @@ function EnhancedLeaderboardInner({
   const sort = (searchParams.get("sort") ?? "composite") as NonNullable<LeaderboardQuery["sort"]>;
   const order = (searchParams.get("order") ?? "desc") as "asc" | "desc";
   const page = Math.max(1, Number(searchParams.get("page") ?? 1));
+  const timeframe = (searchParams.get("timeframe") ?? "7d") as LeaderboardTimeframe;
 
   function setParam(key: string, value: string | null) {
     const params = new URLSearchParams(searchParams.toString());
@@ -71,6 +72,7 @@ function EnhancedLeaderboardInner({
         sort={sort}
         order={order}
         page={page}
+        timeframe={timeframe}
         onSort={handleSort}
         onPage={handlePage}
       />

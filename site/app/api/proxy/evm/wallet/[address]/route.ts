@@ -177,3 +177,5 @@ async function unifiedWalletHandler(
     headers: getCacheHeaders(CACHE_TTL.walletBalances, CACHE_STALE.walletBalances),
   });
 }
+
+export const GET = createEvmRoute(unifiedWalletHandler);
