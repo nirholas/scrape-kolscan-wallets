@@ -87,7 +87,6 @@ export default async function GmgnWalletPage({ params }: { params: { address: st
                   { label: "Followers", value: xProfile.followers.toLocaleString() },
                   { label: "Following", value: xProfile.following.toLocaleString() },
                   { label: "Tweets", value: xProfile.tweets.toLocaleString() },
-                  { label: "Likes", value: (xProfile.likes ?? 0).toLocaleString() },
                 ].map((s) => (
                   <div key={s.label}>
                     <span className="text-white font-bold tabular-nums">{s.value}</span>

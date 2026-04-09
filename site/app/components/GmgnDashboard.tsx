@@ -147,12 +147,11 @@ export default function GmgnDashboard({
       {/* ── Compact Header ── */}
       <div className="flex items-center gap-3 mb-5">
         {(xProfileAvatar || wallet.avatar) ? (
-          <img src={xProfileAvatar || wallet.avatar!} alt="" className="w-10 h-10 rounded-full flex-shrink-0" />
-        ) : (
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-base font-bold text-white flex-shrink-0">
-            {wallet.name.charAt(0).toUpperCase()}
-          </div>
-        )}
+          <img src={xProfileAvatar || wallet.avatar!} alt="" className="w-10 h-10 rounded-full flex-shrink-0" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
+        ) : null}
+        <div className={`w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-base font-bold text-white flex-shrink-0 ${(xProfileAvatar || wallet.avatar) ? 'hidden' : ''}`}>
+          {wallet.name.charAt(0).toUpperCase()}
+        </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">

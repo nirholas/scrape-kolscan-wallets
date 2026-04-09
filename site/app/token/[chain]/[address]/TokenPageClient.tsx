@@ -167,12 +167,11 @@ export default function TokenPageClient({
           {/* Logo + identity */}
           <div className="flex items-center gap-3 flex-1 min-w-0">
             {token.logo ? (
-              <img src={token.logo} alt="" className="w-12 h-12 rounded-full flex-shrink-0" />
-            ) : (
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-lg font-bold text-white flex-shrink-0">
-                {(token.symbol ?? token.name ?? "?").charAt(0).toUpperCase()}
-              </div>
-            )}
+              <img src={token.logo} alt="" className="w-12 h-12 rounded-full flex-shrink-0" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
+            ) : null}
+            <div className={`w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-lg font-bold text-white flex-shrink-0 ${token.logo ? 'hidden' : ''}`}>
+              {(token.symbol ?? token.name ?? "?").charAt(0).toUpperCase()}
+            </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-xl font-bold text-white">{token.name ?? "Unknown"}</h1>
@@ -378,12 +377,11 @@ export default function TokenPageClient({
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           {kol.walletAvatar ? (
-                            <img src={kol.walletAvatar} alt="" className="w-6 h-6 rounded-full flex-shrink-0" />
-                          ) : (
-                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">
-                              {(kol.walletLabel || kol.walletAddress).charAt(0).toUpperCase()}
-                            </div>
-                          )}
+                            <img src={kol.walletAvatar} alt="" className="w-6 h-6 rounded-full flex-shrink-0" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
+                          ) : null}
+                          <div className={`w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 ${kol.walletAvatar ? 'hidden' : ''}`}>
+                            {(kol.walletLabel || kol.walletAddress).charAt(0).toUpperCase()}
+                          </div>
                           <Link
                             href={walletHref(chain, kol.walletAddress)}
                             className="text-sm text-white hover:text-accent transition-colors whitespace-nowrap"
@@ -451,12 +449,11 @@ export default function TokenPageClient({
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           {t.walletAvatar ? (
-                            <img src={t.walletAvatar} alt="" className="w-5 h-5 rounded-full" />
-                          ) : (
-                            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-[9px] font-bold text-white">
-                              {(t.walletLabel || t.walletAddress).charAt(0).toUpperCase()}
-                            </div>
-                          )}
+                            <img src={t.walletAvatar} alt="" className="w-5 h-5 rounded-full" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
+                          ) : null}
+                          <div className={`w-5 h-5 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-[9px] font-bold text-white ${t.walletAvatar ? 'hidden' : ''}`}>
+                            {(t.walletLabel || t.walletAddress).charAt(0).toUpperCase()}
+                          </div>
                           <Link
                             href={walletHref(chain, t.walletAddress)}
                             className="text-sm text-white hover:text-accent transition-colors"

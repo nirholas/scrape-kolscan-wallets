@@ -1,8 +1,19 @@
 import { desc, eq, InferSelectModel } from "drizzle-orm";
 import { db } from "@/drizzle/db";
 import { walletSubmission } from "@/drizzle/db/schema";
+import { getAllSolanaWallets, getBscWallets } from "@/lib/data";
+import CommunityClient from "./CommunityClient";
 
 type WalletSubmission = InferSelectModel<typeof walletSubmission>;
+
+export type CommunityWallet = {
+  wallet_address: string;
+  label: string;
+  chain: string;
+  twitter: string | null;
+  telegram: string | null;
+  source: "community" | "kolscan" | "gmgn";
+};
 
 export const metadata = {
   title: "Community Wallets",
@@ -10,6 +21,7 @@ export const metadata = {
 };
 
 export default async function CommunityPage() {
+  // Load community submissions from DB
   let submissions: WalletSubmission[] = [];
   try {
     submissions = await db
@@ -22,48 +34,57 @@ export default async function CommunityPage() {
     // DB not available
   }
 
-  return (
-    <main className="max-w-7xl mx-auto px-6 py-12 space-y-6">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-white">Community Wallets</h1>
-          <p className="text-zinc-500 text-sm mt-1">Crowdsourced wallet list submitted by users and approved by moderators.</p>
-        </div>
-        <a href="/submit" className="px-3 py-2 rounded-lg bg-white text-black text-sm font-medium">Submit wallet</a>
-      </div>
+  // Load all scraped wallets
+  const [solWallets, bscWallets] = await Promise.all([
+    getAllSolanaWallets(),
+    getBscWallets(),
+  ]);
 
-      <section className="rounded-2xl border border-border bg-bg-card shadow-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="text-zinc-500 bg-black/30">
-              <tr className="border-b border-border">
-                <th className="text-left py-3 px-4">Label</th>
-                <th className="text-left py-3 px-4">Wallet</th>
-                <th className="text-left py-3 px-4">Chain</th>
-                <th className="text-left py-3 px-4">Socials</th>
-              </tr>
-            </thead>
-            <tbody>
-              {submissions.map((s) => (
-                <tr key={s.id} className="border-b border-border/50 hover:bg-bg-hover/40">
-                  <td className="py-3 px-4 text-zinc-200">{s.label}</td>
-                  <td className="py-3 px-4 text-zinc-400 font-mono">{s.walletAddress}</td>
-                  <td className="py-3 px-4 text-zinc-400 uppercase">{s.chain}</td>
-                  <td className="py-3 px-4 text-zinc-400">
-                    <div className="flex gap-3">
-                      {s.twitter && s.twitter.startsWith("https://") ? <a className="hover:text-accent" href={s.twitter} target="_blank" rel="noopener noreferrer">X</a> : <span>-</span>}
-                      {s.telegram && s.telegram.startsWith("https://") ? <a className="hover:text-accent" href={s.telegram} target="_blank" rel="noopener noreferrer">TG</a> : <span>-</span>}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {submissions.length === 0 && (
-            <div className="p-5 text-zinc-500 text-sm">No approved submissions yet.</div>
-          )}
-        </div>
-      </section>
-    </main>
-  );
+  // Build unified list — deduplicate by address
+  const seen = new Set<string>();
+  const wallets: CommunityWallet[] = [];
+
+  // Community submissions first
+  for (const s of submissions) {
+    if (seen.has(s.walletAddress)) continue;
+    seen.add(s.walletAddress);
+    wallets.push({
+      wallet_address: s.walletAddress,
+      label: s.label,
+      chain: s.chain,
+      twitter: s.twitter,
+      telegram: s.telegram,
+      source: "community",
+    });
+  }
+
+  // Solana wallets (kolscan + gmgn)
+  for (const w of solWallets) {
+    if (seen.has(w.wallet_address)) continue;
+    seen.add(w.wallet_address);
+    wallets.push({
+      wallet_address: w.wallet_address,
+      label: w.name || w.wallet_address.slice(0, 8),
+      chain: "sol",
+      twitter: w.twitter || null,
+      telegram: null,
+      source: w.source as "kolscan" | "gmgn",
+    });
+  }
+
+  // BSC wallets
+  for (const w of bscWallets) {
+    if (seen.has(w.wallet_address)) continue;
+    seen.add(w.wallet_address);
+    wallets.push({
+      wallet_address: w.wallet_address,
+      label: w.name || w.wallet_address.slice(0, 8),
+      chain: "bsc",
+      twitter: w.twitter || null,
+      telegram: null,
+      source: w.source as "kolscan" | "gmgn",
+    });
+  }
+
+  return <CommunityClient wallets={wallets} />;
 }

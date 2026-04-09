@@ -85,9 +85,10 @@ export default function RecentTradesPreview() {
         ) : (
           <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
             {trades.map((t) => (
-              <div
+              <Link
                 key={t.id}
-                className="shrink-0 bg-bg-card border border-border rounded-lg px-4 py-3 min-w-[180px] hover:border-zinc-600 transition-colors"
+                href={`/wallet/${t.walletAddress}`}
+                className="shrink-0 bg-bg-card border border-border rounded-lg px-4 py-3 min-w-[180px] hover:border-zinc-600 transition-colors block"
               >
                 <div className="flex items-center justify-between mb-1.5">
                   <span
@@ -105,12 +106,11 @@ export default function RecentTradesPreview() {
                 <div className="flex items-center justify-between mt-1">
                   <span className="flex items-center gap-1.5 text-[11px] text-zinc-500 truncate min-w-0">
                     {t.walletAvatar ? (
-                      <img src={t.walletAvatar} alt="" className="w-4 h-4 rounded-full flex-shrink-0" loading="lazy" />
-                    ) : (
-                      <div className="w-4 h-4 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0">
-                        {(t.walletLabel || t.walletAddress).charAt(0).toUpperCase()}
-                      </div>
-                    )}
+                      <img src={t.walletAvatar} alt="" className="w-4 h-4 rounded-full flex-shrink-0" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
+                    ) : null}
+                    <div className={`w-4 h-4 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0 ${t.walletAvatar ? 'hidden' : ''}`}>
+                      {(t.walletLabel || t.walletAddress).charAt(0).toUpperCase()}
+                    </div>
                     <span className="truncate">{t.walletLabel || shortAddr(t.walletAddress)}</span>
                   </span>
                   {t.amountUsd != null && (
@@ -122,7 +122,7 @@ export default function RecentTradesPreview() {
                 <span className="text-[9px] px-1 py-0.5 rounded bg-zinc-800 text-zinc-600 border border-zinc-700 uppercase mt-1 inline-block">
                   {t.chain}
                 </span>
-              </div>
+              </Link>
             ))}
           </div>
         )}

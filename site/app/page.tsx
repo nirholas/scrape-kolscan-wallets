@@ -305,7 +305,7 @@ export default function Home() {
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight leading-tight">
               Smart wallet intelligence.<br />
-              <span className="text-zinc-500 font-normal text-xl">KolScan · GMGN · Solana · BSC</span>
+              <span className="text-zinc-500 font-normal text-xl">Track top traders across chains</span>
             </h1>
           </div>
           <div className="flex items-center gap-2 flex-wrap">

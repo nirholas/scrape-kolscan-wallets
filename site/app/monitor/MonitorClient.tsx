@@ -88,6 +88,38 @@ const CATEGORY_LABELS: Record<string, string> = {
   kolscan: "KolScan",
 };
 
+/* Reusable image with letter-circle fallback */
+function FallbackImg({
+  src,
+  fallbackLetter,
+  size,
+  className,
+}: {
+  src: string;
+  fallbackLetter: string;
+  size: "sm" | "md";
+  className?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const px = size === "sm" ? "w-5 h-5" : size === "md" ? "w-8 h-8" : "w-6 h-6";
+  const textSize = size === "sm" ? "text-[9px]" : size === "md" ? "text-xs" : "text-[10px]";
+  if (failed || !src) {
+    return (
+      <div className={`${px} rounded-full bg-bg-hover flex items-center justify-center ${textSize} text-zinc-500 flex-shrink-0 ${className || ""}`}>
+        {fallbackLetter}
+      </div>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt=""
+      className={`${px} rounded-full flex-shrink-0 ${className || ""}`}
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /*  Tabs (category filters mimicking GMGN)                           */
 /* ------------------------------------------------------------------ */
@@ -192,10 +224,11 @@ function WalletCard({ group }: { group: WalletGroup }) {
       <div className="px-4 py-3 flex items-center justify-between border-b border-border/50">
         <div className="flex items-center gap-2.5 min-w-0">
           {info?.avatar ? (
-            <img
+            <FallbackImg
               src={info.avatar}
-              alt=""
-              className="w-8 h-8 rounded-full flex-shrink-0 border border-border"
+              fallbackLetter={name.charAt(0).toUpperCase()}
+              size="md"
+              className="border border-border"
             />
           ) : (
             <div className="w-8 h-8 rounded-full bg-bg-hover flex items-center justify-center text-xs text-zinc-500 flex-shrink-0 border border-border">
@@ -255,7 +288,11 @@ function WalletCard({ group }: { group: WalletGroup }) {
                 }`}
               />
               {t.tokenLogo && (
-                <img src={t.tokenLogo} alt="" className="w-5 h-5 rounded-full flex-shrink-0" />
+                <FallbackImg
+                  src={t.tokenLogo}
+                  fallbackLetter={(t.tokenSymbol || "?").charAt(0).toUpperCase()}
+                  size="sm"
+                />
               )}
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
@@ -378,7 +415,11 @@ function WalletSidebar({
               className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-bg-hover transition-colors border-b border-border/30"
             >
               {info?.avatar ? (
-                <img src={info.avatar} alt="" className="w-6 h-6 rounded-full flex-shrink-0" />
+                <FallbackImg
+                  src={info.avatar}
+                  fallbackLetter={name.charAt(0).toUpperCase()}
+                  size="sm"
+                />
               ) : (
                 <div className="w-6 h-6 rounded-full bg-bg-hover flex items-center justify-center text-[10px] text-zinc-600 flex-shrink-0">
                   {name.charAt(0).toUpperCase()}

@@ -297,12 +297,11 @@ function UnifiedTableInner({
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-2">
                         {w.avatar ? (
-                          <img src={w.avatar} alt="" className="w-5 h-5 rounded-full flex-shrink-0" loading="lazy" />
-                        ) : (
-                          <div className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center text-[9px] font-bold text-zinc-500 flex-shrink-0 border border-zinc-700">
-                            {w.name.charAt(0).toUpperCase()}
-                          </div>
-                        )}
+                          <img src={w.avatar} alt="" className="w-5 h-5 rounded-full flex-shrink-0" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
+                        ) : null}
+                        <div className={`w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center text-[9px] font-bold text-zinc-500 flex-shrink-0 border border-zinc-700 ${w.avatar ? 'hidden' : ''}`}>
+                          {w.name.charAt(0).toUpperCase()}
+                        </div>
                         <Link
                           href={
                             w.source === "kolscan"

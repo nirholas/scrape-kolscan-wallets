@@ -447,12 +447,12 @@ export default function TrackerClient({
                                   src={wallet.avatar}
                                   alt=""
                                   className="w-7 h-7 rounded-full bg-bg-hover"
+                                  onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }}
                                 />
-                              ) : (
-                                <div className="w-7 h-7 rounded-full bg-bg-hover flex items-center justify-center text-zinc-600 text-xs font-mono">
-                                  {entry.walletAddress.slice(0, 2)}
-                                </div>
-                              )}
+                              ) : null}
+                              <div className={`w-7 h-7 rounded-full bg-bg-hover flex items-center justify-center text-zinc-600 text-xs font-mono ${wallet?.avatar ? 'hidden' : ''}`}>
+                                {entry.walletAddress.slice(0, 2)}
+                              </div>
                               <div>
                                 <Link
                                   href={

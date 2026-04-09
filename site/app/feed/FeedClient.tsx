@@ -253,12 +253,11 @@ function FeedInner() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         {t.walletAvatar ? (
-                          <img src={t.walletAvatar} alt="" className="w-5 h-5 rounded-full flex-shrink-0" loading="lazy" />
-                        ) : (
-                          <div className="w-5 h-5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[9px] font-bold text-zinc-400 flex-shrink-0">
-                            {(t.walletLabel || t.walletAddress).charAt(0).toUpperCase()}
-                          </div>
-                        )}
+                          <img src={t.walletAvatar} alt="" className="w-5 h-5 rounded-full flex-shrink-0" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
+                        ) : null}
+                        <div className={`w-5 h-5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[9px] font-bold text-zinc-400 flex-shrink-0 ${t.walletAvatar ? 'hidden' : ''}`}>
+                          {(t.walletLabel || t.walletAddress).charAt(0).toUpperCase()}
+                        </div>
                         <Link href={walletHref(t.chain, t.walletAddress)} className="text-sm text-white hover:text-accent transition-colors">
                           {t.walletLabel || shortAddr(t.walletAddress)}
                         </Link>
@@ -266,7 +265,7 @@ function FeedInner() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        {t.tokenLogo && <img src={t.tokenLogo} alt="" className="w-5 h-5 rounded-full" />}
+                        {t.tokenLogo && <img src={t.tokenLogo} alt="" className="w-5 h-5 rounded-full" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
                         <div>
                           <span className="text-sm text-white font-medium">
                             {t.tokenSymbol || shortAddr(t.tokenAddress)}

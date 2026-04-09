@@ -104,17 +104,16 @@ export default async function WalletPage({ params }: { params: { address: string
       {/* ── Compact Header ── */}
       <div className="flex items-center gap-3 mb-5">
         {xProfile?.avatar ? (
-          <img src={xProfile.avatar} alt="" className="w-10 h-10 rounded-full flex-shrink-0" />
-        ) : (
-          <div className="w-10 h-10 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-base font-mono font-bold text-zinc-400 flex-shrink-0">
-            {name.charAt(0).toUpperCase()}
-          </div>
-        )}
+          <img src={xProfile.avatar} alt="" className="w-10 h-10 rounded-full flex-shrink-0" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
+        ) : null}
+        <div className={`w-10 h-10 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-base font-mono font-bold text-zinc-400 flex-shrink-0 ${xProfile?.avatar ? 'hidden' : ''}`}>
+          {name.charAt(0).toUpperCase()}
+        </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-white font-bold text-base">{name}</span>
-            {xProfile?.verified && <span className="text-accent text-xs">✓</span>}
+            {xProfile?.verified && <svg className="w-4 h-4 inline-block" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20.396 11c.003-.988-.18-1.896-.522-2.72a5.413 5.413 0 00-.98-1.69 5.414 5.414 0 00-1.69-.98A5.654 5.654 0 0014.484.09a5.655 5.655 0 00-2.72.523 5.414 5.414 0 00-1.69.98 5.413 5.413 0 00-.98 1.69c-.344.824-.526 1.732-.523 2.72.003.987.18 1.895.523 2.719a5.413 5.413 0 00.98 1.69 5.414 5.414 0 001.69.98 5.654 5.654 0 002.72.522 5.655 5.655 0 002.72-.522 5.414 5.414 0 001.69-.98 5.413 5.413 0 00.98-1.69c.344-.824.526-1.732.522-2.72z" fill="#1D9BF0"/><path d="M9.585 14.586l-3.293-3.293 1.414-1.414L9.585 11.757l4.293-4.293 1.414 1.414-5.707 5.708z" fill="#fff"/></svg>}
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-buy/15 text-buy border border-buy/25">KolScan</span>
             {gmgnExists && (
               <Link href={`/gmgn-wallet/${params.address}`}
@@ -268,7 +267,6 @@ export default async function WalletPage({ params }: { params: { address: string
                   { label: "Followers", value: xProfile.followers.toLocaleString() },
                   { label: "Following", value: xProfile.following.toLocaleString() },
                   { label: "Tweets", value: xProfile.tweets.toLocaleString() },
-                  { label: "Likes", value: (xProfile.likes ?? 0).toLocaleString() },
                 ].map((s) => (
                   <div key={s.label}>
                     <div className="text-white font-bold tabular-nums">{s.value}</div>

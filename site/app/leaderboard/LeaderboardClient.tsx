@@ -202,12 +202,12 @@ function LeaderboardInner({
                           alt=""
                           className="w-6 h-6 rounded-full flex-shrink-0"
                           loading="lazy"
+                          onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }}
                         />
-                      ) : (
-                        <div className="w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px] font-mono font-bold text-zinc-400 flex-shrink-0">
-                          {entry.name.charAt(0).toUpperCase()}
-                        </div>
-                      )}
+                      ) : null}
+                      <div className={`w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px] font-mono font-bold text-zinc-400 flex-shrink-0 ${entry.avatar ? 'hidden' : ''}`}>
+                        {entry.name.charAt(0).toUpperCase()}
+                      </div>
                       <Link
                         href={`/wallet/${entry.wallet_address}`}
                         className="text-white text-sm font-medium hover:text-buy transition-colors"
