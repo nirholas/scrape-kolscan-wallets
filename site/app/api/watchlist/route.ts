@@ -22,6 +22,7 @@ export async function GET() {
       walletAddress: r.walletAddress,
       chain: r.chain,
       label: r.label,
+      groupName: r.groupName,
       createdAt: r.createdAt,
     })),
   });
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { walletAddress: addr, chain, label } = body;
+  const { walletAddress: addr, chain, label, groupName } = body;
 
   if (!addr || !chain) {
     return NextResponse.json({ error: "walletAddress and chain are required" }, { status: 400 });
@@ -56,8 +57,44 @@ export async function POST(req: NextRequest) {
       walletAddress: addr,
       chain,
       label: typeof label === "string" ? label.slice(0, 120) : null,
+      groupName: typeof groupName === "string" ? groupName.slice(0, 60) : null,
     })
     .onConflictDoNothing();
+
+  return NextResponse.json({ ok: true });
+}
+
+// PATCH — update wallet label or group
+export async function PATCH(req: NextRequest) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const body = await req.json();
+  const { walletAddress: addr, label, groupName } = body;
+
+  if (!addr || typeof addr !== "string") {
+    return NextResponse.json({ error: "walletAddress is required" }, { status: 400 });
+  }
+
+  const updates: Record<string, string | null> = {};
+  if (label !== undefined) updates.label = typeof label === "string" ? label.slice(0, 120) : null;
+  if (groupName !== undefined) updates.groupName = typeof groupName === "string" ? groupName.slice(0, 60) : null;
+
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
+  }
+
+  await db
+    .update(watchlist)
+    .set(updates)
+    .where(
+      and(
+        eq(watchlist.userId, session.user.id),
+        eq(watchlist.walletAddress, addr),
+      ),
+    );
 
   return NextResponse.json({ ok: true });
 }

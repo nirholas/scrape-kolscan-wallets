@@ -12,9 +12,13 @@ interface Trade {
   tokenAddress: string;
   tokenSymbol: string | null;
   tokenName: string | null;
+  tokenLogo: string | null;
+  tokenLaunchpad: string | null;
   amountUsd: number | null;
   amountToken: number | null;
   priceUsd: number | null;
+  realizedProfit: number | null;
+  realizedProfitPnl: number | null;
   txHash: string | null;
   source: string;
   tradedAt: string;
@@ -225,6 +229,9 @@ export default function FeedClient() {
                   <th className="px-4 py-3 text-right text-[11px] font-medium text-zinc-600 uppercase tracking-wider">
                     Amount
                   </th>
+                  <th className="px-4 py-3 text-right text-[11px] font-medium text-zinc-600 uppercase tracking-wider">
+                    Profit
+                  </th>
                   <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 uppercase tracking-wider">
                     Chain
                   </th>
@@ -262,17 +269,38 @@ export default function FeedClient() {
                       </Link>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-sm text-white font-medium">
-                        {t.tokenSymbol || shortAddr(t.tokenAddress)}
-                      </span>
-                      {t.tokenName && (
-                        <span className="text-[11px] text-zinc-600 ml-1.5">
-                          {t.tokenName}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {t.tokenLogo && (
+                          <img src={t.tokenLogo} alt="" className="w-5 h-5 rounded-full" />
+                        )}
+                        <div>
+                          <span className="text-sm text-white font-medium">
+                            {t.tokenSymbol || shortAddr(t.tokenAddress)}
+                          </span>
+                          {t.tokenName && (
+                            <span className="text-[11px] text-zinc-600 ml-1.5">
+                              {t.tokenName}
+                            </span>
+                          )}
+                          {t.tokenLaunchpad && (
+                            <span className="text-[9px] text-zinc-600 ml-1.5">
+                              via {t.tokenLaunchpad}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-right text-sm tabular-nums font-medium text-zinc-300">
                       {formatUsd(t.amountUsd)}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {t.realizedProfit != null ? (
+                        <span className={`text-sm tabular-nums font-medium ${t.realizedProfit > 0 ? "text-buy" : "text-sell"}`}>
+                          {t.realizedProfit > 0 ? "+" : ""}{formatUsd(t.realizedProfit)}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-zinc-700">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500 border border-zinc-700 uppercase">

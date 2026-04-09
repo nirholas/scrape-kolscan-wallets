@@ -1,6 +1,7 @@
 {
   "name": "kolscan-scraper",
   "version": "1.0.0",
+  "type": "module",
   "description": "Scrape all KOL wallet data from kolscan.io leaderboard + GMGN smart money",
   "main": "scrape.js",
   "scripts": {

@@ -110,10 +110,30 @@ async function Nav() {
               ]}
             />
             <Link
+              href="/track"
+              className="px-3 py-1.5 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-bg-hover transition-all duration-200 flex items-center gap-1.5"
+            >
+              Track
+              <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+            </Link>
+            <Link
               href="/all-solana"
               className="px-3 py-1.5 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-bg-hover transition-all duration-200"
             >
               All Solana
+            </Link>
+            <Link
+              href="/monitor"
+              className="px-3 py-1.5 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-bg-hover transition-all duration-200 flex items-center gap-1.5"
+            >
+              Monitor
+              <span className="w-1.5 h-1.5 rounded-full bg-buy animate-pulse" />
+            </Link>
+            <Link
+              href="/tracker"
+              className="px-3 py-1.5 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-bg-hover transition-all duration-200"
+            >
+              Tracker
             </Link>
             <Link
               href="/feed"
@@ -208,6 +228,7 @@ function SiteFooter() {
               <li><Link href="/leaderboard" className="hover:text-white transition-colors">Leaderboard</Link></li>
               <li><Link href="/all-solana" className="hover:text-white transition-colors">All Solana</Link></li>
               <li><Link href="/bsc" className="hover:text-white transition-colors">BSC Wallets</Link></li>
+              <li><Link href="/tracker" className="hover:text-white transition-colors">Wallet Tracker</Link></li>
               <li><Link href="/submit" className="hover:text-white transition-colors">Submit Wallet</Link></li>
             </ul>
           </div>

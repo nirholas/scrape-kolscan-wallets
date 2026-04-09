@@ -34,6 +34,40 @@ export interface GmgnWallet {
   balance: number;
   last_active: number;
   follow_count: number;
+  // PnL ratios (ROI)
+  pnl_1d: number;
+  pnl_7d: number;
+  pnl_30d: number;
+  // Transaction counts
+  txs_1d: number;
+  txs_7d: number;
+  txs_30d: number;
+  // Win rate 1d
+  winrate_1d: number;
+  // Volume
+  volume_1d: number;
+  volume_7d: number;
+  volume_30d: number;
+  // Average cost basis
+  avg_cost_1d: number;
+  avg_cost_7d: number;
+  avg_cost_30d: number;
+  // Average holding period (seconds)
+  avg_holding_period_1d: number;
+  avg_holding_period_7d: number;
+  avg_holding_period_30d: number;
+  // Net inflow/outflow
+  net_inflow_1d: number;
+  net_inflow_7d: number;
+  net_inflow_30d: number;
+  // PnL distribution (7d trade outcome buckets)
+  pnl_lt_minus_dot5_num_7d: number; // trades at < -50%
+  pnl_minus_dot5_0x_num_7d: number; // trades at -50% to 0x
+  pnl_lt_2x_num_7d: number;         // trades at 0-2x
+  pnl_2x_5x_num_7d: number;         // trades at 2-5x
+  pnl_gt_5x_num_7d: number;         // trades at >5x
+  // Daily profit sparkline
+  daily_profit_7d: { timestamp: number; profit: number }[];
 }
 
 // Unified wallet for combined leaderboard views
@@ -61,6 +95,7 @@ export interface UnifiedWallet {
 
 // X/Twitter profile data (scraped via xactions)
 export interface XProfile {
+  id: string | null;
   username: string;
   name: string | null;
   bio: string | null;
@@ -71,8 +106,12 @@ export interface XProfile {
   followers: number;
   following: number;
   tweets: number;
+  likes: number;
+  media: number;
   verified: boolean;
+  protected: boolean;
   joinDate: string | null;
+  pinnedTweetId: string | null;
   scrapedAt: string;
   error?: string;
 }

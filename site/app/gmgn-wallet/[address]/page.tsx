@@ -137,7 +137,7 @@ export default async function GmgnWalletPage({ params, searchParams }: { params:
           {xProfile?.bio && (
             <p className="text-zinc-400 text-xs mt-1 line-clamp-2 max-w-lg">{xProfile.bio}</p>
           )}
-          <aa
+          <a
             href={`${explorer}/${params.address}`}
             target="_blank"
             rel="noopener noreferrer"
@@ -181,6 +181,41 @@ export default async function GmgnWalletPage({ params, searchParams }: { params:
         ))}
       </div>
 
+      {/* X Profile */}
+      {xProfile && (
+        <div className="bg-bg-card rounded-2xl border border-border shadow-card p-5 mb-8">
+          <h2 className="text-zinc-500 text-xs font-medium mb-4 uppercase tracking-wider">X / Twitter</h2>
+          {xProfile.header && (
+            <div className="rounded-xl overflow-hidden mb-4 -mx-1">
+              <img src={xProfile.header} alt="" className="w-full h-28 object-cover" />
+            </div>
+          )}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-4">
+            {[
+              { label: "Followers", value: xProfile.followers.toLocaleString() },
+              { label: "Following", value: xProfile.following.toLocaleString() },
+              { label: "Tweets", value: xProfile.tweets.toLocaleString() },
+              { label: "Likes", value: (xProfile.likes ?? 0).toLocaleString() },
+              { label: "Media", value: (xProfile.media ?? 0).toLocaleString() },
+            ].map((s) => (
+              <div key={s.label} className="text-center">
+                <div className="text-white text-sm font-bold tabular-nums">{s.value}</div>
+                <div className="text-zinc-500 text-[11px] uppercase tracking-wider">{s.label}</div>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
+            {xProfile.location && <span>📍 {xProfile.location}</span>}
+            {xProfile.website && (
+              <a href={xProfile.website} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors truncate max-w-xs">
+                🔗 {xProfile.website.replace(/^https?:\/\//, "")}
+              </a>
+            )}
+            {xProfile.joinDate && <span>📅 Joined {new Date(xProfile.joinDate).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</span>}
+          </div>
+        </div>
+      )}
+
       {/* PnL by Timeframe */}
       <div className="mb-8">
         <h2 className="text-base font-bold text-white tracking-tight mb-4">PnL by Timeframe</h2>
@@ -222,6 +257,96 @@ export default async function GmgnWalletPage({ params, searchParams }: { params:
           })}
         </div>
       </div>
+
+      {/* Trading Stats */}
+      <div className="mb-8">
+        <h2 className="text-base font-bold text-white tracking-tight mb-4">Trading Stats</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { label: "Volume 7D", value: wallet.volume_7d >= 1000 ? `$${(wallet.volume_7d / 1000).toFixed(1)}k` : `$${wallet.volume_7d.toFixed(0)}` },
+            { label: "Volume 30D", value: wallet.volume_30d >= 1000 ? `$${(wallet.volume_30d / 1000).toFixed(1)}k` : `$${wallet.volume_30d.toFixed(0)}` },
+            { label: "Avg Cost 7D", value: wallet.avg_cost_7d >= 1000 ? `$${(wallet.avg_cost_7d / 1000).toFixed(1)}k` : `$${wallet.avg_cost_7d.toFixed(0)}` },
+            { label: "Avg Hold 7D", value: wallet.avg_holding_period_7d > 3600 ? `${(wallet.avg_holding_period_7d / 3600).toFixed(1)}h` : wallet.avg_holding_period_7d > 60 ? `${(wallet.avg_holding_period_7d / 60).toFixed(0)}m` : `${wallet.avg_holding_period_7d.toFixed(0)}s` },
+            { label: "ROI 7D", value: `${(wallet.pnl_7d * 100).toFixed(1)}%`, color: wallet.pnl_7d > 0 ? "text-buy" : wallet.pnl_7d < 0 ? "text-sell" : undefined },
+            { label: "ROI 30D", value: `${(wallet.pnl_30d * 100).toFixed(1)}%`, color: wallet.pnl_30d > 0 ? "text-buy" : wallet.pnl_30d < 0 ? "text-sell" : undefined },
+            { label: "Win Rate 1D", value: wallet.winrate_1d > 0 ? `${(wallet.winrate_1d * 100).toFixed(1)}%` : "—" },
+            { label: "Net Inflow 7D", value: wallet.net_inflow_7d >= 1000 ? `$${(wallet.net_inflow_7d / 1000).toFixed(1)}k` : wallet.net_inflow_7d <= -1000 ? `-$${(Math.abs(wallet.net_inflow_7d) / 1000).toFixed(1)}k` : `$${wallet.net_inflow_7d.toFixed(0)}`, color: wallet.net_inflow_7d > 0 ? "text-buy" : wallet.net_inflow_7d < 0 ? "text-sell" : undefined },
+          ].map((s) => (
+            <div key={s.label} className="bg-bg-card rounded-2xl border border-border shadow-card p-4">
+              <div className="text-zinc-500 text-[11px] uppercase tracking-wider mb-1">{s.label}</div>
+              <div className={`text-sm font-bold tabular-nums ${(s as any).color || "text-white"}`}>{s.value}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* PnL Distribution */}
+      {(() => {
+        const dist = [
+          { label: "<-50%", value: wallet.pnl_lt_minus_dot5_num_7d, color: "bg-red-500" },
+          { label: "-50%–0", value: wallet.pnl_minus_dot5_0x_num_7d, color: "bg-orange-500" },
+          { label: "0–2x", value: wallet.pnl_lt_2x_num_7d, color: "bg-zinc-500" },
+          { label: "2–5x", value: wallet.pnl_2x_5x_num_7d, color: "bg-emerald-500" },
+          { label: ">5x", value: wallet.pnl_gt_5x_num_7d, color: "bg-green-400" },
+        ];
+        const total = dist.reduce((s, d) => s + d.value, 0);
+        if (total === 0) return null;
+        return (
+          <div className="mb-8">
+            <h2 className="text-base font-bold text-white tracking-tight mb-4">PnL Distribution (7D)</h2>
+            <div className="bg-bg-card rounded-2xl border border-border shadow-card p-5">
+              <div className="flex rounded-lg overflow-hidden h-6 mb-3">
+                {dist.map((d) => d.value > 0 ? (
+                  <div key={d.label} className={`${d.color} transition-all`} style={{ width: `${(d.value / total) * 100}%` }} title={`${d.label}: ${d.value} trades`} />
+                ) : null)}
+              </div>
+              <div className="flex justify-between text-[11px]">
+                {dist.map((d) => (
+                  <div key={d.label} className="text-center">
+                    <div className="text-zinc-500">{d.label}</div>
+                    <div className="text-white font-medium tabular-nums">{d.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Daily Profit (7D Sparkline) */}
+      {wallet.daily_profit_7d.length > 0 && (() => {
+        const profits = wallet.daily_profit_7d;
+        const max = Math.max(...profits.map((d) => Math.abs(d.profit)), 1);
+        return (
+          <div className="mb-8">
+            <h2 className="text-base font-bold text-white tracking-tight mb-4">Daily Profit (7D)</h2>
+            <div className="bg-bg-card rounded-2xl border border-border shadow-card p-5">
+              <div className="flex items-end gap-1.5 h-24">
+                {profits.map((d) => {
+                  const pct = Math.abs(d.profit) / max;
+                  const isPos = d.profit >= 0;
+                  return (
+                    <div key={d.timestamp} className="flex-1 flex flex-col items-center justify-end h-full">
+                      <div
+                        className={`w-full rounded-sm ${isPos ? "bg-buy/70" : "bg-sell/70"}`}
+                        style={{ height: `${Math.max(pct * 100, 4)}%` }}
+                        title={`${isPos ? "+" : ""}${d.profit.toFixed(2)}`}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex gap-1.5 mt-2">
+                {profits.map((d) => (
+                  <div key={d.timestamp} className="flex-1 text-center text-[9px] text-zinc-600">
+                    {new Date(d.timestamp * 1000).toLocaleDateString(undefined, { weekday: "short" })}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Quick Actions */}
       <div className="bg-bg-card rounded-2xl border border-border shadow-card p-5 mb-8">

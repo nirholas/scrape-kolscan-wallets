@@ -42,17 +42,28 @@ function genId(): string {
 
 interface HoldingEntry {
   history_bought_cost: string;
+  history_bought_fee: string;
+  history_bought_amount: string;
   history_sold_income: string;
+  history_sold_fee: string;
+  history_sold_amount: string;
   history_total_buys: number;
   history_total_sells: number;
   realized_profit: string;
+  realized_profit_pnl: string;
   start_holding_at: number;
   end_holding_at: number;
   last_active_timestamp: number;
+  wallet_token_tags: string[];
   token: {
     token_address: string;
     symbol: string;
     name: string;
+    logo: string;
+    launchpad: string;
+    launchpad_platform: string;
+    price: string;
+  };
   };
 }
 
@@ -119,6 +130,9 @@ async function importFromFile(filePath: string, chain: "sol" | "bsc") {
 
         const boughtCost = parseFloat(h.history_bought_cost) || 0;
         const soldIncome = parseFloat(h.history_sold_income) || 0;
+        const realizedProfit = parseFloat(h.realized_profit) || null;
+        const realizedProfitPnl = parseFloat(h.realized_profit_pnl) || null;
+        const tokenTags = Array.isArray(h.wallet_token_tags) ? JSON.stringify(h.wallet_token_tags) : null;
 
         // Create buy trade if there were buys
         if (h.history_total_buys > 0 && boughtCost > 0) {
@@ -130,12 +144,18 @@ async function importFromFile(filePath: string, chain: "sol" | "bsc") {
             tokenAddress: token.token_address,
             tokenSymbol: token.symbol || null,
             tokenName: token.name || null,
+            tokenLogo: token.logo || null,
+            tokenLaunchpad: token.launchpad || token.launchpad_platform || null,
             amountUsd: boughtCost,
-            amountToken: null,
-            priceUsd: null,
+            amountToken: parseFloat(h.history_bought_amount) || null,
+            priceUsd: parseFloat(token.price) || null,
+            realizedProfit: null,
+            realizedProfitPnl: null,
+            fee: parseFloat(h.history_bought_fee) || null,
             txHash: null,
             source: "gmgn",
             walletLabel: label,
+            walletTags: tokenTags,
             tradedAt: new Date(h.start_holding_at * 1000),
           });
         }
@@ -150,12 +170,18 @@ async function importFromFile(filePath: string, chain: "sol" | "bsc") {
             tokenAddress: token.token_address,
             tokenSymbol: token.symbol || null,
             tokenName: token.name || null,
+            tokenLogo: token.logo || null,
+            tokenLaunchpad: token.launchpad || token.launchpad_platform || null,
             amountUsd: soldIncome,
-            amountToken: null,
-            priceUsd: null,
+            amountToken: parseFloat(h.history_sold_amount) || null,
+            priceUsd: parseFloat(token.price) || null,
+            realizedProfit,
+            realizedProfitPnl,
+            fee: parseFloat(h.history_sold_fee) || null,
             txHash: null,
             source: "gmgn",
             walletLabel: label,
+            walletTags: tokenTags,
             tradedAt: new Date((h.end_holding_at || h.last_active_timestamp || h.start_holding_at) * 1000),
           });
         }

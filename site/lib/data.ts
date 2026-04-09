@@ -54,6 +54,45 @@ function parseGmgnRaw(raw: any, chain: "sol" | "bsc"): GmgnWallet[] {
       balance: parseFloat(w.balance) || 0,
       last_active: w.last_active || 0,
       follow_count: w.follow_count || 0,
+      // PnL ratios
+      pnl_1d: parseFloat(w.pnl_1d) || 0,
+      pnl_7d: parseFloat(w.pnl_7d) || 0,
+      pnl_30d: parseFloat(w.pnl_30d) || 0,
+      // Transaction counts
+      txs_1d: w.txs_1d || 0,
+      txs_7d: w.txs_7d || 0,
+      txs_30d: w.txs_30d || 0,
+      // Win rate 1d
+      winrate_1d: w.winrate_1d || 0,
+      // Volume
+      volume_1d: parseFloat(w.volume_1d) || 0,
+      volume_7d: parseFloat(w.volume_7d) || 0,
+      volume_30d: parseFloat(w.volume_30d) || 0,
+      // Average cost
+      avg_cost_1d: parseFloat(w.avg_cost_1d) || 0,
+      avg_cost_7d: parseFloat(w.avg_cost_7d) || 0,
+      avg_cost_30d: parseFloat(w.avg_cost_30d) || 0,
+      // Average holding period
+      avg_holding_period_1d: w.avg_holding_period_1d || 0,
+      avg_holding_period_7d: w.avg_holding_period_7d || 0,
+      avg_holding_period_30d: w.avg_holding_period_30d || 0,
+      // Net inflow
+      net_inflow_1d: parseFloat(w.net_inflow_1d) || 0,
+      net_inflow_7d: parseFloat(w.net_inflow_7d) || 0,
+      net_inflow_30d: parseFloat(w.net_inflow_30d) || 0,
+      // PnL distribution
+      pnl_lt_minus_dot5_num_7d: w.pnl_lt_minus_dot5_num_7d || 0,
+      pnl_minus_dot5_0x_num_7d: w.pnl_minus_dot5_0x_num_7d || 0,
+      pnl_lt_2x_num_7d: w.pnl_lt_2x_num_7d || 0,
+      pnl_2x_5x_num_7d: w.pnl_2x_5x_num_7d || 0,
+      pnl_gt_5x_num_7d: w.pnl_gt_5x_num_7d || 0,
+      // Daily profit sparkline
+      daily_profit_7d: Array.isArray(w.daily_profit_7d)
+        ? w.daily_profit_7d.map((d: any) => ({
+            timestamp: d.timestamp || 0,
+            profit: parseFloat(d.profit) || 0,
+          }))
+        : [],
     });
   }
 

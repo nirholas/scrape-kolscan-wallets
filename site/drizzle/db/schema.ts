@@ -130,12 +130,18 @@ export const trade = pgTable(
     tokenAddress: varchar("token_address", { length: 96 }).notNull(),
     tokenSymbol: varchar("token_symbol", { length: 32 }),
     tokenName: varchar("token_name", { length: 120 }),
+    tokenLogo: text("token_logo"),
+    tokenLaunchpad: varchar("token_launchpad", { length: 60 }),
     amountUsd: doublePrecision("amount_usd"),
     amountToken: doublePrecision("amount_token"),
     priceUsd: doublePrecision("price_usd"),
+    realizedProfit: doublePrecision("realized_profit"),
+    realizedProfitPnl: doublePrecision("realized_profit_pnl"),
+    fee: doublePrecision("fee"),
     txHash: varchar("tx_hash", { length: 128 }),
     source: text("source").notNull().default("gmgn"), // "gmgn" | "onchain"
     walletLabel: varchar("wallet_label", { length: 120 }),
+    walletTags: text("wallet_tags"), // JSON array as string
     tradedAt: timestamp("traded_at").notNull(),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
@@ -158,6 +164,7 @@ export const watchlist = pgTable(
     walletAddress: varchar("wallet_address", { length: 96 }).notNull(),
     chain: text("chain").notNull(),
     label: varchar("label", { length: 120 }),
+    groupName: varchar("group_name", { length: 60 }),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => {

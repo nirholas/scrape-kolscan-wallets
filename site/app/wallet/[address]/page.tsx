@@ -212,6 +212,41 @@ export default async function WalletPage({ params }: { params: { address: string
         </div>
       </div>
 
+      {/* X Profile */}
+      {xProfile && (
+        <div className="bg-bg-card rounded-2xl border border-border shadow-card p-5 mb-8">
+          <h2 className="text-zinc-500 text-xs font-medium mb-4 uppercase tracking-wider">X / Twitter</h2>
+          {xProfile.header && (
+            <div className="rounded-xl overflow-hidden mb-4 -mx-1">
+              <img src={xProfile.header} alt="" className="w-full h-28 object-cover" />
+            </div>
+          )}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-4">
+            {[
+              { label: "Followers", value: xProfile.followers.toLocaleString() },
+              { label: "Following", value: xProfile.following.toLocaleString() },
+              { label: "Tweets", value: xProfile.tweets.toLocaleString() },
+              { label: "Likes", value: (xProfile.likes ?? 0).toLocaleString() },
+              { label: "Media", value: (xProfile.media ?? 0).toLocaleString() },
+            ].map((s) => (
+              <div key={s.label} className="text-center">
+                <div className="text-white text-sm font-bold tabular-nums">{s.value}</div>
+                <div className="text-zinc-500 text-[11px] uppercase tracking-wider">{s.label}</div>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
+            {xProfile.location && <span>📍 {xProfile.location}</span>}
+            {xProfile.website && (
+              <a href={xProfile.website} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors truncate max-w-xs">
+                🔗 {xProfile.website.replace(/^https?:\/\//, "")}
+              </a>
+            )}
+            {xProfile.joinDate && <span>📅 Joined {new Date(xProfile.joinDate).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</span>}
+          </div>
+        </div>
+      )}
+
       {/* PnL by Timeframe */}
       <div className="mb-8">
         <div className="flex items-baseline gap-3 mb-4">

@@ -23,7 +23,10 @@ const NAV_SECTIONS = [
   {
     heading: null,
     items: [
+      { href: "/track", label: "Track", desc: "New tokens from tracked wallets" },
+      { href: "/tracker", label: "Wallet Tracker", desc: "Your tracked wallet portfolio" },
       { href: "/all-solana", label: "All Solana", desc: "Combined deduplicated wallets" },
+      { href: "/monitor", label: "Monitor", desc: "GMGN-style live wallet monitor" },
       { href: "/feed", label: "Feed", desc: "Live wallet activity" },
       { href: "/docs", label: "Docs", desc: "API & data documentation" },
       { href: "/community", label: "Community", desc: "" },
