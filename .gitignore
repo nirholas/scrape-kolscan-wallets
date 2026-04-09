@@ -1,3 +1,7 @@
 node_modules/
 .next/
 bun.lock
+.env
+.env.*
+!.env.example
+.vercel

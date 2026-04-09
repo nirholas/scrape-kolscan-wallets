@@ -3,6 +3,7 @@
 node_modules
 drizzle/migrations
 .env
-.env.local
-.env.production
+.env.*
+!.env.example
 npm-debug.log*
+bun.lock
