@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import type { KolEntry } from "@/lib/types";
+import { formatProfit } from "@/lib/format";
 
 interface CalendarProps {
   entries: KolEntry[];
@@ -15,10 +16,6 @@ function getMonthDays(year: number, month: number) {
   const startDayOfWeek = (firstDay.getDay() + 6) % 7; // Monday = 0
   const daysInMonth = lastDay.getDate();
   return { startDayOfWeek, daysInMonth };
-}
-
-function formatProfit(v: number) {
-  return `${v > 0 ? "+" : ""}${v.toFixed(2)}`;
 }
 
 function profitColor(v: number) {

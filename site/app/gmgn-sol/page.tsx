@@ -2,6 +2,8 @@ import { getSolGmgnData } from "@/lib/data";
 import type { UnifiedWallet } from "@/lib/types";
 import UnifiedTable from "@/app/components/UnifiedTable";
 
+export const revalidate = 3600;
+
 export const metadata = {
   title: "GMGN Solana Wallets | KolQuest",
   description: "Smart money wallets scraped from GMGN — smart degens, KOLs, snipers, and more",

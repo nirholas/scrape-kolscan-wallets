@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import MonitorClient from "./MonitorClient";
 import { getAllSolanaWallets, getBscWallets } from "@/lib/data";
 
+export const revalidate = 3600;
+
 export const metadata: Metadata = {
   title: "Monitor — Live Wallet Activity",
   description:

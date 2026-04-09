@@ -3,10 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import type { KolEntry } from "@/lib/types";
-
-function truncate(addr: string) {
-  return addr.slice(0, 4) + "..." + addr.slice(-4);
-}
+import { truncateAddr } from "@/lib/format";
 
 export default function CalendarGrid({ data }: { data: KolEntry[] }) {
   const [search, setSearch] = useState("");
@@ -68,7 +65,7 @@ export default function CalendarGrid({ data }: { data: KolEntry[] }) {
             >
               <div className="flex items-center justify-between mb-3">
                 <span className="text-white font-semibold text-sm group-hover:text-buy transition-colors">{w.name}</span>
-                <span className="font-mono text-[10px] text-zinc-600">{truncate(w.address)}</span>
+                <span className="font-mono text-[10px] text-zinc-600">{truncateAddr(w.address)}</span>
               </div>
 
               {/* Mini PnL bars */}

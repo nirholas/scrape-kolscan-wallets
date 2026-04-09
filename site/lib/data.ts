@@ -20,8 +20,13 @@ async function _getData(): Promise<KolEntry[]> {
   } catch {
     // fs not available — use fetch
   }
-  const res = await fetch(KOLSCAN_DATA_URL);
-  return res.json();
+  try {
+    const res = await fetch(KOLSCAN_DATA_URL);
+    if (res.ok) return res.json();
+  } catch {
+    // fetch failed
+  }
+  return [];
 }
 
 export const getData = unstable_cache(_getData, ["kolscan-leaderboard"], { revalidate: 3600 });

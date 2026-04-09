@@ -1,7 +1,6 @@
 import Link from "next/link";
 import CopyButton from "@/app/components/CopyButton";
 import ProfileActions from "@/app/components/ProfileActions";
-import ReportButton from "@/app/components/ReportButton";
 import GmgnDashboard from "@/app/components/GmgnDashboard";
 import { HeaderImg } from "@/app/components/FallbackImg";
 import { getWalletDetail } from "@/lib/wallet-detail";
@@ -136,7 +135,6 @@ export default async function WalletPage({ params }: { params: { address: string
                 </a>
               ))}
             </div>
-            <ReportButton walletAddress={address} />
           </div>
         </div>
       </div>

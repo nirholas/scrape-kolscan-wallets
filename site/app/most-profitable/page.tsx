@@ -1,6 +1,8 @@
 import LeaderboardClient from "../leaderboard/LeaderboardClient";
 import { getData } from "@/lib/data";
 
+export const revalidate = 3600;
+
 export const metadata = {
   title: "Most Profitable | KolQuest — Highest Profit KOLs",
   description:

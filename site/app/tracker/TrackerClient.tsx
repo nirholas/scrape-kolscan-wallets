@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { avatarFallbackStyle } from "@/lib/avatar";
 import { AvatarFallback } from "@/app/components/FallbackImg";
 import { truncateAddr, formatProfit, timeAgo } from "@/lib/format";
 import type { UnifiedWallet } from "@/lib/types";

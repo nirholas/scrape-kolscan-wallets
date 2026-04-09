@@ -1,6 +1,8 @@
 import { getAllSolanaWallets } from "@/lib/data";
 import UnifiedTable from "@/app/components/UnifiedTable";
 
+export const revalidate = 3600;
+
 export const metadata = {
   title: "All Solana Wallets | KolQuest",
   description: "Combined Solana wallet intelligence — KolScan + GMGN smart money wallets",
