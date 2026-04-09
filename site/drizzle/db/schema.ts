@@ -152,6 +152,10 @@ export const trade = pgTable(
       chainIdx: index("trade_chain_idx").on(table.chain),
       tradedAtIdx: index("trade_traded_at_idx").on(table.tradedAt),
       tokenIdx: index("trade_token_idx").on(table.tokenAddress),
+      // Composite index for trending query (tokens by time + chain)
+      trendingIdx: index("trade_trending_idx").on(table.tradedAt, table.chain, table.tokenAddress),
+      // Composite index for wallet trade history
+      walletHistoryIdx: index("trade_wallet_history_idx").on(table.walletAddress, table.tradedAt),
     };
   },
 );
@@ -182,6 +186,103 @@ export const watchlist = pgTable(
     return {
       pk: primaryKey({ columns: [table.userId, table.walletAddress] }),
       userIdx: index("watchlist_user_idx").on(table.userId),
+    };
+  },
+);
+
+// --- Smart Money Tracker ---
+
+export const smartMoneyActivity = pgTable(
+  "smart_money_activity",
+  {
+    id: text("id").primaryKey(),
+    walletAddress: varchar("wallet_address", { length: 96 }).notNull(),
+    walletLabel: varchar("wallet_label", { length: 120 }),
+    walletAvatar: text("wallet_avatar"),
+    walletCategory: varchar("wallet_category", { length: 60 }), // 'kol', 'whale', 'sniper', 'smart_degen'
+    chain: text("chain").notNull(), // 'sol', 'eth', 'bsc', 'base'
+    txHash: varchar("tx_hash", { length: 128 }).notNull(),
+    action: text("action").notNull(), // 'buy', 'sell', 'transfer'
+    tokenAddress: varchar("token_address", { length: 96 }),
+    tokenSymbol: varchar("token_symbol", { length: 32 }),
+    tokenName: varchar("token_name", { length: 120 }),
+    tokenLogo: text("token_logo"),
+    amount: doublePrecision("amount"),
+    usdValue: doublePrecision("usd_value"),
+    priceUsd: doublePrecision("price_usd"),
+    realizedPnl: doublePrecision("realized_pnl"),
+    realizedPnlPercent: doublePrecision("realized_pnl_percent"),
+    source: text("source").notNull().default("gmgn"), // 'gmgn', 'helius', 'birdeye', 'cielo'
+    timestamp: timestamp("timestamp").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => {
+    return {
+      walletIdx: index("sma_wallet_idx").on(table.walletAddress),
+      chainIdx: index("sma_chain_idx").on(table.chain),
+      timestampIdx: index("sma_timestamp_idx").on(table.timestamp),
+      tokenIdx: index("sma_token_idx").on(table.tokenAddress),
+      actionIdx: index("sma_action_idx").on(table.action),
+      // Composite for feed queries
+      feedIdx: index("sma_feed_idx").on(table.timestamp, table.chain, table.action),
+      // Composite for token accumulation
+      tokenAccumIdx: index("sma_token_accum_idx").on(table.tokenAddress, table.chain, table.timestamp),
+    };
+  },
+);
+
+export const smartMoneySignal = pgTable(
+  "smart_money_signal",
+  {
+    id: text("id").primaryKey(),
+    tokenAddress: varchar("token_address", { length: 96 }).notNull(),
+    tokenSymbol: varchar("token_symbol", { length: 32 }),
+    tokenName: varchar("token_name", { length: 120 }),
+    tokenLogo: text("token_logo"),
+    chain: text("chain").notNull(),
+    signalType: text("signal_type").notNull(), // 'accumulation', 'distribution', 'new_position', 'exit'
+    walletCount: integer("wallet_count").notNull().default(0),
+    totalBuyUsd: doublePrecision("total_buy_usd").default(0),
+    totalSellUsd: doublePrecision("total_sell_usd").default(0),
+    netFlowUsd: doublePrecision("net_flow_usd").default(0),
+    period: text("period").notNull(), // '1h', '24h', '7d'
+    topWallets: text("top_wallets"), // JSON array of wallet addresses
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => {
+    return {
+      tokenChainIdx: index("sms_token_chain_idx").on(table.tokenAddress, table.chain),
+      signalTypeIdx: index("sms_signal_type_idx").on(table.signalType),
+      periodIdx: index("sms_period_idx").on(table.period),
+      createdAtIdx: index("sms_created_at_idx").on(table.createdAt),
+      // For leaderboard queries
+      netFlowIdx: index("sms_net_flow_idx").on(table.period, table.netFlowUsd),
+    };
+  },
+);
+
+export const smartMoneyAlert = pgTable(
+  "smart_money_alert",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    alertType: text("alert_type").notNull(), // 'wallet_trade', 'token_accumulation', 'whale_move'
+    // Filter conditions (JSON)
+    conditions: text("conditions").notNull(), // JSON: { walletAddress?, minUsd?, tokenAddress?, chain? }
+    // Notification channels
+    notifyInApp: boolean("notify_in_app").notNull().default(true),
+    notifyEmail: boolean("notify_email").notNull().default(false),
+    notifyPush: boolean("notify_push").notNull().default(false),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => {
+    return {
+      userIdx: index("smart_alert_user_idx").on(table.userId),
+      activeIdx: index("smart_alert_active_idx").on(table.active),
     };
   },
 );

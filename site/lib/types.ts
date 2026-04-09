@@ -91,8 +91,8 @@ export interface UnifiedWallet {
   sns_id?: string | null;
   ens_name?: string | null;
   twitter: string | null;
-  chain: "sol" | "bsc";
-  source: "kolscan" | "gmgn";
+  chain: "sol" | "bsc" | "polygon";
+  source: "kolscan" | "gmgn" | "polymarket";
   category: string;
   tags: string[];
   profit_1d: number;
@@ -283,3 +283,228 @@ export interface UnifiedWalletExtended extends UnifiedWallet {
   polymarket_rank?: number;
   polymarket_markets?: number;
 }
+
+// ────────────────────────────────────────────────────────────
+// Enhanced Leaderboard Types
+// ────────────────────────────────────────────────────────────
+
+export type LeaderboardChain = 'solana' | 'ethereum' | 'bsc' | 'base' | 'arbitrum' | 'polygon';
+export type LeaderboardTimeframe = '24h' | '7d' | '30d' | 'all';
+export type LeaderboardCategory = 'overall' | 'kol' | 'smart_money' | 'whale' | 'sniper' | 'meme' | 'defi';
+export type LeaderboardSource = 'kolscan' | 'gmgn' | 'dune' | 'flipside' | 'polymarket';
+
+// Individual source rankings
+export interface SourceRanking {
+  rank: number;
+  pnl?: number;
+  winRate?: number;
+  volume?: number;
+  trades?: number;
+  category?: string;
+}
+
+// Twitter/X identity link
+export interface TwitterIdentity {
+  username: string;
+  name: string;
+  avatar: string | null;
+}
+
+// Enhanced leaderboard entry with multi-source rankings
+export interface LeaderboardEntry {
+  address: string;
+  chain: LeaderboardChain;
+  
+  // Identity
+  name: string;
+  twitter?: TwitterIdentity;
+  ensOrSns?: string | null;
+  avatar?: string | null;
+  
+  // Rankings from each source
+  rankings: {
+    kolscan?: SourceRanking;
+    gmgn?: SourceRanking;
+    dune?: SourceRanking;
+    flipside?: SourceRanking;
+    polymarket?: SourceRanking;
+  };
+  
+  // Computed metrics  
+  compositeScore: number; // 0-100
+  avgRank: number;
+  totalPnl: number;
+  avgWinRate: number;
+  
+  // Activity
+  lastActive: string | null; // ISO timestamp
+  totalTrades: number;
+  
+  // Tags
+  categories: string[];
+  verifiedSources: LeaderboardSource[];
+  
+  // Rank change from previous period (-1 means dropped, +1 means rose, 0 no change)
+  rankChange?: number;
+}
+
+// Leaderboard API response
+export interface LeaderboardResponse {
+  entries: LeaderboardEntry[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  lastUpdated: string; // ISO timestamp
+  sources: {
+    kolscan: boolean;
+    gmgn: boolean;
+    dune: boolean;
+    flipside: boolean;
+    polymarket: boolean;
+  };
+}
+
+// Leaderboard query parameters
+export interface LeaderboardQuery {
+  chain?: LeaderboardChain | 'all';
+  timeframe?: LeaderboardTimeframe;
+  category?: LeaderboardCategory;
+  sort?: 'pnl' | 'winrate' | 'trades' | 'composite' | 'rank';
+  order?: 'asc' | 'desc';
+  page?: number;
+  limit?: number;
+  search?: string;
+  minPnl?: number;
+  minWinRate?: number;
+  activeInDays?: number;
+  verifiedOnly?: boolean;
+}
+
+// ────────────────────────────────────────────────────────────
+// Enriched Solana Wallet Types (Multi-Source)
+// ────────────────────────────────────────────────────────────
+
+// Enrichment data from external APIs (Helius, Birdeye, Dune)
+export interface WalletEnrichment {
+  portfolio_value_usd: number | null;        // Total portfolio value (Birdeye/Helius)
+  realized_pnl: number | null;               // Realized PnL (Helius)
+  unrealized_pnl: number | null;             // Unrealized PnL (GMGN/Birdeye)
+  active_positions: number | null;           // Count of non-zero token holdings (Birdeye)
+  last_trade_at: number | null;              // Unix timestamp of most recent trade (Helius)
+  smart_money_tags: string[];                // Labels from Dune (whale, sniper, etc.)
+  enriched_at: number;                       // When this enrichment was fetched
+}
+
+// Enriched wallet extending UnifiedWallet
+export interface EnrichedSolanaWallet extends UnifiedWallet {
+  // Base enrichment fields (lazy-loaded)
+  portfolio_value_usd?: number | null;
+  realized_pnl?: number | null;
+  unrealized_pnl?: number | null;
+  active_positions?: number | null;
+  last_trade_at?: number | null;
+  smart_money_tags?: string[];
+  enriched_at?: number;
+  
+  // Source flags for UI indicators
+  sources?: {
+    kolscan: boolean;
+    gmgn: boolean;
+    helius: boolean;
+    birdeye: boolean;
+    dune: boolean;
+  };
+}
+
+// Filter options for the enhanced All Solana page
+export interface SolanaWalletFilters {
+  minPortfolioValue?: number;
+  maxPortfolioValue?: number;
+  minWinrate?: number;
+  maxWinrate?: number;
+  activeWithin?: "24h" | "7d" | "30d" | "all";
+  category?: string;
+  hasTwitter?: boolean;
+  smartMoneyTag?: string;
+  search?: string;
+}
+
+// Paginated response for Solana wallets API
+export interface SolanaWalletsResponse {
+  wallets: EnrichedSolanaWallet[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasMore: boolean;
+  };
+  sources: {
+    kolscan: boolean;
+    gmgn: boolean;
+    helius: boolean;
+    birdeye: boolean;
+  };
+  categories: string[];
+  smartMoneyTags: string[];
+}
+
+// Real-time enrichment response for single wallet expand
+export interface WalletExpandData {
+  address: string;
+  // Helius data
+  balances?: {
+    tokens: Array<{
+      mint: string;
+      amount: number;
+      decimals: number;
+      tokenAccount?: string;
+    }>;
+    nativeBalance: number;
+  };
+  recentTxs?: Array<{
+    signature: string;
+    type: string;
+    timestamp: number;
+    description?: string;
+    fee?: number;
+    tokenTransfers?: Array<{
+      mint: string;
+      fromUser: string;
+      toUser: string;
+      amount: number;
+    }>;
+  }>;
+  pnl?: {
+    realized: number;
+    unrealized: number;
+    totalValue: number;
+  };
+  // Birdeye data
+  holdings?: Array<{
+    address: string;
+    symbol: string;
+    name: string;
+    decimals: number;
+    balance: number;
+    valueUsd: number;
+    priceUsd: number;
+    priceChange24h: number;
+  }>;
+  portfolioValue?: number;
+  // Fetch status
+  fetchedAt: number;
+  errors?: string[];
+}
+
+// Sort fields for enhanced table
+export type EnrichedSortField =
+  | GmgnSortField
+  | "portfolio_value"
+  | "realized_pnl"
+  | "unrealized_pnl"
+  | "active_positions"
+  | "last_trade_at";

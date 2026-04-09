@@ -2,7 +2,7 @@
  * GMGN X Tracker Browser Console Scraper
  * 
  * INSTRUCTIONS:
- * 1. Go to https://gmgn.ai/x in your browser
+ * 1. Go to https://gmgn.ai/follow?chain=sol in your browser
  * 2. Open DevTools (F12) → Console tab
  * 3. Paste this entire script and press Enter
  * 4. Scroll down the page to load more accounts (or use autoScroll())
@@ -93,7 +93,7 @@
     const response = await originalFetch.apply(this, args);
     const url = args[0]?.toString?.() || args[0];
     
-    if (url.includes('twitter/user/search') || url.includes('x_tracker') || url.includes('twitter')) {
+    if (url.includes('twitter/user/search') || url.includes('x_tracker') || url.includes('twitter') || url.includes('follow') || url.includes('kol')) {
       try {
         const clone = response.clone();
         const data = await clone.json();
@@ -115,7 +115,7 @@
   
   XMLHttpRequest.prototype.send = function(...args) {
     this.addEventListener('load', function() {
-      if (this._url && (this._url.includes('twitter/user/search') || this._url.includes('twitter'))) {
+      if (this._url && (this._url.includes('twitter/user/search') || this._url.includes('twitter') || this._url.includes('follow') || this._url.includes('kol'))) {
         try {
           const data = JSON.parse(this.responseText);
           extractFromResponse(data);
@@ -183,7 +183,7 @@
     const result = {
       meta: {
         scrapedAt: new Date().toISOString(),
-        source: "gmgn.ai/x (browser)",
+        source: "gmgn.ai/follow (browser)",
         totalAccounts: accounts.length,
       },
       accounts,

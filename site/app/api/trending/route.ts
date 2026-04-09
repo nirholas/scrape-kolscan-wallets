@@ -2,9 +2,40 @@ import { NextRequest, NextResponse } from "next/server";
 import { and, desc, sql, gte, eq } from "drizzle-orm";
 import { db } from "@/drizzle/db";
 import { trade } from "@/drizzle/db/schema";
+import { fetchTrendingTokens, type TrendingFilters } from "@/lib/trending-aggregator";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
+  const source = searchParams.get("source") ?? "aggregated";
+
+  // New aggregated trending from multiple external sources
+  if (source === "aggregated") {
+    const filters: TrendingFilters = {
+      chain: searchParams.get("chain") ?? undefined,
+      category: searchParams.get("category") ?? undefined,
+      timeframe: (searchParams.get("timeframe") as "1h" | "24h" | "7d") ?? "24h",
+      limit: Math.min(parseInt(searchParams.get("limit") ?? "50", 10) || 50, 100),
+      minLiquidity: parseInt(searchParams.get("minLiquidity") ?? "0", 10) || 0,
+      hideRugs: searchParams.get("hideRugs") === "true",
+    };
+
+    try {
+      const result = await fetchTrendingTokens(filters);
+      return NextResponse.json(result, {
+        headers: {
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+        },
+      });
+    } catch (err) {
+      console.error("Trending aggregation error:", err);
+      return NextResponse.json(
+        { error: "Failed to fetch trending data", tokens: [], sources: {} },
+        { status: 500 },
+      );
+    }
+  }
+
+  // Legacy: DB-based trending from tracked wallet activity
   const hoursParam = parseFloat(searchParams.get("hours") ?? "24");
   const hours = isFinite(hoursParam) && hoursParam > 0 ? Math.min(hoursParam, 168) : 24;
   const chainParam = searchParams.get("chain");

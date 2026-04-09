@@ -1,5 +1,5 @@
 import { unstable_cache } from "next/cache";
-import type { KolEntry, GmgnWallet, UnifiedWallet, XProfile, XTrackerData, XTrackerAccount } from "./types";
+import type { KolEntry, GmgnWallet, UnifiedWallet, XProfile, XTrackerData, XTrackerAccount, PolymarketTrader, PolymarketMarket, PolymarketData } from "./types";
 
 const KOLSCAN_DATA_URL =
   "https://raw.githubusercontent.com/nirholas/scrape-kolscan-wallets/main/output/kolscan-leaderboard.json";
@@ -430,3 +430,537 @@ export async function getXTrackerAccounts(): Promise<XTrackerAccount[]> {
   const data = await getXTrackerData();
   return data.accounts;
 }
+
+// ────────────────────────────────────────────────────────────
+// Polymarket Data
+// ────────────────────────────────────────────────────────────
+const POLYMARKET_DATA_URL =
+  "https://raw.githubusercontent.com/nirholas/scrape-kolscan-wallets/main/site/data/polymarket-leaderboard.json";
+
+export const getPolymarketData = unstable_cache(
+  async (): Promise<PolymarketData> => {
+    try {
+      const fs = await import("fs");
+      const path = await import("path");
+      const filePath = path.join(process.cwd(), "data", "polymarket-leaderboard.json");
+      if (fs.existsSync(filePath)) {
+        return JSON.parse(fs.readFileSync(filePath, "utf-8"));
+      }
+    } catch {
+      // fs not available
+    }
+
+    try {
+      const res = await fetch(POLYMARKET_DATA_URL);
+      if (res.ok) {
+        return res.json();
+      }
+    } catch {
+      // fetch failed
+    }
+
+    return { meta: { scrapedAt: "", source: "polymarket", totalTraders: 0, totalMarkets: 0 }, traders: [], markets: [] };
+  },
+  ["polymarket-data"],
+  { revalidate: 3600 },
+);
+
+export async function getPolymarketTraders(): Promise<PolymarketTrader[]> {
+  const data = await getPolymarketData();
+  return data.traders;
+}
+
+export async function getPolymarketMarkets(): Promise<PolymarketMarket[]> {
+  const data = await getPolymarketData();
+  return data.markets;
+}
+
+/**
+ * Convert Polymarket traders to UnifiedWallet format for combined views
+ */
+function polymarketToUnified(traders: PolymarketTrader[]): UnifiedWallet[] {
+  return traders.map((t) => ({
+    wallet_address: t.wallet_address,
+    name: t.display_name || t.username || t.wallet_address.slice(0, 8),
+    twitter: t.twitter_handle ? `https://x.com/${t.twitter_handle}` : null,
+    chain: "polygon" as const,
+    source: "polymarket" as const,
+    category: "prediction_trader",
+    tags: t.tags.length > 0 ? t.tags : ["polymarket"],
+    profit_1d: 0, // Polymarket doesn't have 1d PnL in same format
+    profit_7d: t.pnl_7d,
+    profit_30d: t.pnl_30d,
+    buys_1d: 0,
+    buys_7d: 0,
+    buys_30d: 0,
+    sells_1d: 0,
+    sells_7d: 0,
+    sells_30d: 0,
+    winrate_1d: t.winrate,
+    winrate_7d: t.winrate,
+    winrate_30d: t.winrate,
+    avatar: t.profile_image,
+  }));
+}
+
+export const getPolymarketWallets = unstable_cache(
+  async (): Promise<UnifiedWallet[]> => {
+    const traders = await getPolymarketTraders();
+    return polymarketToUnified(traders);
+  },
+  ["polymarket-wallets"],
+  { revalidate: 3600 },
+);
+
+/**
+ * Get all wallets across all sources (Solana + BSC + Polymarket)
+ */
+export const getAllWallets = unstable_cache(
+  async (): Promise<UnifiedWallet[]> => {
+    const [solana, bsc, polymarket] = await Promise.all([
+      getAllSolanaWallets(),
+      getBscWallets(),
+      getPolymarketWallets(),
+    ]);
+    return [...solana, ...bsc, ...polymarket];
+  },
+  ["all-wallets"],
+  { revalidate: 3600 },
+);
+
+// ────────────────────────────────────────────────────────────
+// Multi-Source Enrichment Functions
+// ────────────────────────────────────────────────────────────
+
+import type { EnrichedSolanaWallet, WalletEnrichment, WalletExpandData, SolanaWalletFilters } from "./types";
+
+const HELIUS_API = "https://api.helius.xyz";
+const BIRDEYE_API = "https://public-api.birdeye.so";
+const DUNE_API = "https://api.dune.com/api/v1";
+
+// Smart money labels from Dune queries (cached on server)
+let duneLabelsCache: Map<string, string[]> | null = null;
+let duneLabelsCacheTime = 0;
+const DUNE_CACHE_TTL = 3600 * 1000; // 1 hour
+
+/**
+ * Fetch Helius wallet PnL data
+ */
+async function fetchHeliusPnl(address: string): Promise<{ realized: number; unrealized: number } | null> {
+  const apiKey = process.env.HELIUS_API_KEY;
+  if (!apiKey) return null;
+  
+  try {
+    const res = await fetch(`${HELIUS_API}/v0/pnl/wallets/${address}?api-key=${apiKey}`, {
+      next: { revalidate: 300 }, // 5 min cache
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return {
+      realized: data.realized_pnl ?? data.realizedPnl ?? 0,
+      unrealized: data.unrealized_pnl ?? data.unrealizedPnl ?? 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch Helius token balances for a wallet
+ */
+async function fetchHeliusBalances(address: string): Promise<WalletExpandData["balances"] | null> {
+  const apiKey = process.env.HELIUS_API_KEY;
+  if (!apiKey) return null;
+  
+  try {
+    const res = await fetch(`${HELIUS_API}/v0/addresses/${address}/balances?api-key=${apiKey}`, {
+      next: { revalidate: 60 }, // 1 min cache
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return {
+      tokens: (data.tokens || []).map((t: any) => ({
+        mint: t.mint,
+        amount: t.amount,
+        decimals: t.decimals,
+        tokenAccount: t.tokenAccount,
+      })),
+      nativeBalance: data.nativeBalance || 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch Helius recent transactions
+ */
+async function fetchHeliusTransactions(address: string, limit = 20): Promise<WalletExpandData["recentTxs"] | null> {
+  const apiKey = process.env.HELIUS_API_KEY;
+  if (!apiKey) return null;
+  
+  try {
+    const res = await fetch(
+      `${HELIUS_API}/v0/addresses/${address}/transactions?api-key=${apiKey}&limit=${limit}`,
+      { next: { revalidate: 60 } }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return (data || []).map((tx: any) => ({
+      signature: tx.signature,
+      type: tx.type || "unknown",
+      timestamp: tx.timestamp,
+      description: tx.description,
+      fee: tx.fee,
+      tokenTransfers: tx.tokenTransfers,
+    }));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch Birdeye portfolio/holdings for a wallet
+ */
+async function fetchBirdeyePortfolio(address: string): Promise<{
+  holdings: WalletExpandData["holdings"];
+  portfolioValue: number;
+} | null> {
+  const apiKey = process.env.BIRDEYE_API_KEY;
+  if (!apiKey) return null;
+  
+  try {
+    const res = await fetch(`${BIRDEYE_API}/v1/wallet/token_list?wallet=${address}`, {
+      headers: { "X-API-KEY": apiKey, "x-chain": "solana" },
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const items = data.data?.items || [];
+    
+    const holdings = items.map((t: any) => ({
+      address: t.address,
+      symbol: t.symbol || "???",
+      name: t.name || t.symbol || "Unknown",
+      decimals: t.decimals || 0,
+      balance: t.uiAmount || 0,
+      valueUsd: t.valueUsd || 0,
+      priceUsd: t.priceUsd || 0,
+      priceChange24h: t.priceChange24H || 0,
+    }));
+    
+    const portfolioValue = items.reduce((sum: number, t: any) => sum + (t.valueUsd || 0), 0);
+    
+    return { holdings, portfolioValue };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch Dune smart money labels (batch, cached)
+ */
+async function fetchDuneLabels(): Promise<Map<string, string[]>> {
+  const apiKey = process.env.DUNE_API_KEY;
+  if (!apiKey) return new Map();
+  
+  // Check cache
+  if (duneLabelsCache && Date.now() - duneLabelsCacheTime < DUNE_CACHE_TTL) {
+    return duneLabelsCache;
+  }
+  
+  const labelsMap = new Map<string, string[]>();
+  
+  try {
+    // Query IDs for smart money labels
+    const queryIds = [2435924, 3311589];
+    
+    for (const queryId of queryIds) {
+      const res = await fetch(`${DUNE_API}/query/${queryId}/results?limit=1000`, {
+        headers: { "X-Dune-API-Key": apiKey },
+        next: { revalidate: 3600 },
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        const rows = data.result?.rows || [];
+        
+        for (const row of rows) {
+          const address = row.wallet_address || row.address || row.wallet;
+          const label = row.label || row.tag || row.category;
+          if (address && label) {
+            const existing = labelsMap.get(address.toLowerCase()) || [];
+            if (!existing.includes(label)) {
+              existing.push(label);
+              labelsMap.set(address.toLowerCase(), existing);
+            }
+          }
+        }
+      }
+    }
+    
+    duneLabelsCache = labelsMap;
+    duneLabelsCacheTime = Date.now();
+    return labelsMap;
+  } catch {
+    return labelsMap;
+  }
+}
+
+/**
+ * Enrich wallet with data from multiple sources (for table view)
+ * This is a lightweight enrichment — for full data use fetchWalletExpandData
+ */
+export async function enrichWallet(wallet: UnifiedWallet): Promise<EnrichedSolanaWallet> {
+  const enriched: EnrichedSolanaWallet = {
+    ...wallet,
+    sources: {
+      kolscan: wallet.source === "kolscan" || wallet.tags.includes("kolscan"),
+      gmgn: wallet.source === "gmgn",
+      helius: false,
+      birdeye: false,
+      dune: false,
+    },
+  };
+  
+  // Run enrichment in parallel with graceful fallbacks
+  const [heliusPnl, birdeyeData, duneLabels] = await Promise.allSettled([
+    fetchHeliusPnl(wallet.wallet_address),
+    fetchBirdeyePortfolio(wallet.wallet_address),
+    fetchDuneLabels(),
+  ]);
+  
+  // Apply Helius PnL
+  if (heliusPnl.status === "fulfilled" && heliusPnl.value) {
+    enriched.realized_pnl = heliusPnl.value.realized;
+    enriched.unrealized_pnl = heliusPnl.value.unrealized;
+    enriched.sources!.helius = true;
+  }
+  
+  // Apply Birdeye portfolio
+  if (birdeyeData.status === "fulfilled" && birdeyeData.value) {
+    enriched.portfolio_value_usd = birdeyeData.value.portfolioValue;
+    enriched.active_positions = birdeyeData.value.holdings.filter(h => h.valueUsd > 0).length;
+    enriched.sources!.birdeye = true;
+  }
+  
+  // Apply Dune labels
+  if (duneLabels.status === "fulfilled") {
+    const labels = duneLabels.value.get(wallet.wallet_address.toLowerCase()) || [];
+    if (labels.length > 0) {
+      enriched.smart_money_tags = labels;
+      enriched.sources!.dune = true;
+    }
+  }
+  
+  enriched.enriched_at = Date.now();
+  return enriched;
+}
+
+/**
+ * Batch enrich multiple wallets (more efficient)
+ */
+export async function enrichWalletsBatch(
+  wallets: UnifiedWallet[], 
+  maxConcurrent = 5
+): Promise<EnrichedSolanaWallet[]> {
+  // Pre-fetch Dune labels (shared across all wallets)
+  const duneLabels = await fetchDuneLabels();
+  
+  const enriched: EnrichedSolanaWallet[] = [];
+  
+  // Process in batches to avoid rate limits
+  for (let i = 0; i < wallets.length; i += maxConcurrent) {
+    const batch = wallets.slice(i, i + maxConcurrent);
+    const results = await Promise.all(
+      batch.map(async (wallet) => {
+        const e: EnrichedSolanaWallet = {
+          ...wallet,
+          sources: {
+            kolscan: wallet.source === "kolscan" || wallet.tags.includes("kolscan"),
+            gmgn: wallet.source === "gmgn",
+            helius: false,
+            birdeye: false,
+            dune: false,
+          },
+        };
+        
+        // Apply Dune labels (already fetched)
+        const labels = duneLabels.get(wallet.wallet_address.toLowerCase()) || [];
+        if (labels.length > 0) {
+          e.smart_money_tags = labels;
+          e.sources!.dune = true;
+        }
+        
+        e.enriched_at = Date.now();
+        return e;
+      })
+    );
+    enriched.push(...results);
+  }
+  
+  return enriched;
+}
+
+/**
+ * Fetch full expand data for a single wallet (click-to-expand)
+ */
+export async function fetchWalletExpandData(address: string): Promise<WalletExpandData> {
+  const errors: string[] = [];
+  
+  const [balances, recentTxs, heliusPnl, birdeyeData] = await Promise.allSettled([
+    fetchHeliusBalances(address),
+    fetchHeliusTransactions(address, 20),
+    fetchHeliusPnl(address),
+    fetchBirdeyePortfolio(address),
+  ]);
+  
+  const result: WalletExpandData = {
+    address,
+    fetchedAt: Date.now(),
+  };
+  
+  if (balances.status === "fulfilled" && balances.value) {
+    result.balances = balances.value;
+  } else if (balances.status === "rejected") {
+    errors.push("Failed to fetch Helius balances");
+  }
+  
+  if (recentTxs.status === "fulfilled" && recentTxs.value) {
+    result.recentTxs = recentTxs.value;
+  } else if (recentTxs.status === "rejected") {
+    errors.push("Failed to fetch Helius transactions");
+  }
+  
+  if (heliusPnl.status === "fulfilled" && heliusPnl.value) {
+    result.pnl = {
+      realized: heliusPnl.value.realized,
+      unrealized: heliusPnl.value.unrealized,
+      totalValue: heliusPnl.value.realized + heliusPnl.value.unrealized,
+    };
+  }
+  
+  if (birdeyeData.status === "fulfilled" && birdeyeData.value) {
+    result.holdings = birdeyeData.value.holdings;
+    result.portfolioValue = birdeyeData.value.portfolioValue;
+  } else if (birdeyeData.status === "rejected") {
+    errors.push("Failed to fetch Birdeye portfolio");
+  }
+  
+  if (errors.length > 0) {
+    result.errors = errors;
+  }
+  
+  return result;
+}
+
+/**
+ * Filter and sort enriched wallets based on filter params
+ */
+export function filterSolanaWallets(
+  wallets: EnrichedSolanaWallet[],
+  filters: SolanaWalletFilters
+): EnrichedSolanaWallet[] {
+  let result = [...wallets];
+  
+  // Portfolio value filter
+  if (filters.minPortfolioValue !== undefined) {
+    result = result.filter(
+      (w) => (w.portfolio_value_usd ?? 0) >= filters.minPortfolioValue!
+    );
+  }
+  if (filters.maxPortfolioValue !== undefined) {
+    result = result.filter(
+      (w) => (w.portfolio_value_usd ?? Infinity) <= filters.maxPortfolioValue!
+    );
+  }
+  
+  // Win rate filter
+  if (filters.minWinrate !== undefined) {
+    result = result.filter((w) => w.winrate_7d >= filters.minWinrate!);
+  }
+  if (filters.maxWinrate !== undefined) {
+    result = result.filter((w) => w.winrate_7d <= filters.maxWinrate!);
+  }
+  
+  // Activity recency filter
+  if (filters.activeWithin && filters.activeWithin !== "all") {
+    const now = Date.now();
+    const cutoffs: Record<string, number> = {
+      "24h": now - 24 * 60 * 60 * 1000,
+      "7d": now - 7 * 24 * 60 * 60 * 1000,
+      "30d": now - 30 * 24 * 60 * 60 * 1000,
+    };
+    const cutoff = cutoffs[filters.activeWithin];
+    if (cutoff) {
+      result = result.filter(
+        (w) => (w.last_trade_at ?? 0) * 1000 >= cutoff
+      );
+    }
+  }
+  
+  // Category filter
+  if (filters.category) {
+    result = result.filter((w) => w.category === filters.category);
+  }
+  
+  // Has Twitter filter
+  if (filters.hasTwitter !== undefined) {
+    result = result.filter((w) => 
+      filters.hasTwitter ? !!w.twitter : !w.twitter
+    );
+  }
+  
+  // Smart money tag filter
+  if (filters.smartMoneyTag) {
+    result = result.filter((w) =>
+      w.smart_money_tags?.includes(filters.smartMoneyTag!) ||
+      w.tags.includes(filters.smartMoneyTag!)
+    );
+  }
+  
+  // Search filter
+  if (filters.search) {
+    const q = filters.search.toLowerCase();
+    result = result.filter(
+      (w) =>
+        w.name.toLowerCase().includes(q) ||
+        w.wallet_address.toLowerCase().includes(q) ||
+        (w.sns_id || "").toLowerCase().includes(q) ||
+        (w.ens_name || "").toLowerCase().includes(q) ||
+        w.twitter?.toLowerCase().includes(q) ||
+        w.tags.some((t) => t.toLowerCase().includes(q)) ||
+        w.smart_money_tags?.some((t) => t.toLowerCase().includes(q))
+    );
+  }
+  
+  return result;
+}
+
+/**
+ * Get enriched Solana wallets (cached)
+ */
+export const getEnrichedSolanaWallets = unstable_cache(
+  async (): Promise<EnrichedSolanaWallet[]> => {
+    const wallets = await getAllSolanaWallets();
+    // For initial load, only add Dune labels (API calls are expensive)
+    const duneLabels = await fetchDuneLabels();
+    
+    return wallets.map((w) => {
+      const labels = duneLabels.get(w.wallet_address.toLowerCase()) || [];
+      return {
+        ...w,
+        smart_money_tags: labels.length > 0 ? labels : undefined,
+        sources: {
+          kolscan: w.source === "kolscan" || w.tags.includes("kolscan"),
+          gmgn: w.source === "gmgn",
+          helius: false,
+          birdeye: false,
+          dune: labels.length > 0,
+        },
+      } as EnrichedSolanaWallet;
+    });
+  },
+  ["enriched-solana-wallets"],
+  { revalidate: 3600 },
+);
