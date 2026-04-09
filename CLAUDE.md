@@ -76,6 +76,8 @@ npm run mcp               # MCP stdio server for AI assistants
 | `NEXT_PUBLIC_BETTER_AUTH_URL` | Recommended | Auth URL (usually same as above) |
 | `ADMIN_USERNAME` | Optional | Auto-promotes this username to admin on first login |
 | `GMGN_TOKEN` | Optional | Bearer token for GMGN API (reduces rate-limit hits) |
+| `X402_ENABLED` | Optional | Set to `false` to disable x402 payment gating (default: enabled) |
+| `X402_PAYMENT_ADDRESS` | Optional | Override the USDC recipient address on Base mainnet for x402 payments |
 
 ---
 
