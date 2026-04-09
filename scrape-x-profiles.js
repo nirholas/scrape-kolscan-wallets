@@ -174,7 +174,7 @@ function parseUserResult(result, username) {
   }
 
   let avatar = legacy.profile_image_url_https || null;
-  if (avatar) avatar = avatar.replace(/_normal\./, ".");
+  if (avatar) avatar = avatar.replace(/_normal\./, "_400x400.");
 
   return {
     id: result.rest_id || null,

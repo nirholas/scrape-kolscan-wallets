@@ -94,6 +94,26 @@ export const apiKey = pgTable(
   },
 );
 
+export const apiUsage = pgTable(
+  "api_usage",
+  {
+    id: text("id").primaryKey(), // We'll use a string ID (like ulid or nanoid) instead of serial for consistency
+    apiKeyId: text("api_key_id")
+      .notNull()
+      .references(() => apiKey.id, { onDelete: "cascade" }),
+    date: timestamp("date").notNull(), // Used as DATE
+    requestCount: integer("request_count").notNull().default(0),
+    quotaLimit: integer("quota_limit").notNull(),
+  },
+  (table) => {
+    return {
+      apiKeyDateIdx: index("api_usage_api_key_date_idx").on(table.apiKeyId, table.date),
+      // We also enforce unique per key per date
+      uniqueApiKeyDate: index("api_usage_unique_idx").on(table.apiKeyId, table.date),
+    };
+  },
+);
+
 export const walletSubmission = pgTable(
   "wallet_submission",
   {
@@ -183,6 +203,8 @@ export const trade = pgTable(
       chainIdx: index("trade_chain_idx").on(table.chain),
       tradedAtIdx: index("trade_traded_at_idx").on(table.tradedAt),
       tokenIdx: index("trade_token_idx").on(table.tokenAddress),
+      // Composite index for the main trades feed query
+      feedIdx: index("trade_feed_idx").on(table.chain, table.walletAddress, table.type, table.tradedAt),
       // Composite index for trending query (tokens by time + chain)
       trendingIdx: index("trade_trending_idx").on(table.tradedAt, table.chain, table.tokenAddress),
       // Composite index for wallet trade history
