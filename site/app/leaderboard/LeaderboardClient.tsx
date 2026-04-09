@@ -24,10 +24,22 @@ function truncate(addr: string) {
   return addr.slice(0, 4) + "..." + addr.slice(-4);
 }
 
-export default function LeaderboardClient({ data }: { data: KolEntry[] }) {
+export default function LeaderboardClient({
+  data,
+  defaultSort = "profit",
+  defaultDir = "desc",
+  title = "KOL Leaderboard",
+  subtitle,
+}: {
+  data: KolEntry[];
+  defaultSort?: SortField;
+  defaultDir?: SortDir;
+  title?: string;
+  subtitle?: string;
+}) {
   const [timeframe, setTimeframe] = useState<Timeframe>(1);
-  const [sortField, setSortField] = useState<SortField>("profit");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [sortField, setSortField] = useState<SortField>(defaultSort);
+  const [sortDir, setSortDir] = useState<SortDir>(defaultDir);
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
@@ -83,9 +95,9 @@ export default function LeaderboardClient({ data }: { data: KolEntry[] }) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">KOL Leaderboard</h1>
+          <h1 className="text-2xl font-bold text-white tracking-tight">{title}</h1>
           <p className="text-zinc-500 text-sm mt-1">
-            {filtered.length} {filtered.length === 1 ? "entry" : "entries"} · sorted by {sortField}
+            {subtitle || `${filtered.length} ${filtered.length === 1 ? "entry" : "entries"} · sorted by ${sortField}`}
           </p>
         </div>
 

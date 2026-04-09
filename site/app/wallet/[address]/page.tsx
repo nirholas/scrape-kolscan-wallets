@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: { params: { address: string }
   const data = await getData();
   const entry = data.find((e) => e.wallet_address === params.address);
   return {
-    title: `${entry?.name || params.address.slice(0, 8)} | KolScan Explorer`,
+    title: `${entry?.name || params.address.slice(0, 8)} | KolQuest`,
     description: `Wallet details for ${entry?.name || params.address}`,
   };
 }
@@ -110,7 +110,8 @@ export default async function WalletPage({ params }: { params: { address: string
         <div className="flex gap-1.5">
           {[
             { href: `https://solscan.io/account/${params.address}`, label: "Solscan", hoverColor: "hover:text-white" },
-            { href: `https://gmgn.ai/sol/address/${params.address}`, label: "GMGN", hoverColor: "hover:text-yellow-400" },
+            { href: `https://gmgn.ai/sol/address/${params.address}?ref=nichxbt`, label: "GMGN", hoverColor: "hover:text-yellow-400" },
+            { href: `https://trade.padre.gg/rk/nich?wallet=${params.address}`, label: "Padre", hoverColor: "hover:text-purple-400" },
             { href: `https://kolscan.io/${params.address}`, label: "KolScan", hoverColor: "hover:text-buy" },
           ].map((link) => (
             <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer"
@@ -244,9 +245,10 @@ export default async function WalletPage({ params }: { params: { address: string
         <div className="flex flex-wrap gap-2">
           {[
             { href: `https://kolscan.io/${params.address}`, label: "KolScan", border: "hover:border-buy/50" },
-            { href: `https://gmgn.ai/sol/address/${params.address}`, label: "GMGN", border: "hover:border-yellow-500/50" },
+            { href: `https://gmgn.ai/sol/address/${params.address}?ref=nichxbt`, label: "GMGN", border: "hover:border-yellow-500/50" },
+            { href: `https://trade.padre.gg/rk/nich?wallet=${params.address}`, label: "Padre", border: "hover:border-purple-500/50" },
             { href: `https://solscan.io/account/${params.address}`, label: "Solscan", border: "hover:border-blue-500/50" },
-            { href: `https://birdeye.so/profile/${params.address}?chain=solana`, label: "Birdeye", border: "hover:border-purple-500/50" },
+            { href: `https://birdeye.so/profile/${params.address}?chain=solana`, label: "Birdeye", border: "hover:border-indigo-500/50" },
           ].map((link) => (
             <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer"
               className={`bg-bg-elevated/50 border border-border rounded-xl px-4 py-2 text-xs text-zinc-400 hover:text-white ${link.border} transition-all duration-200`}>
