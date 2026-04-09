@@ -16,8 +16,9 @@ function resolutionToSeconds(resolution: string): number {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { chain: string; address: string } }
+  context: { params: Promise<{ chain: string; address: string }> }
 ) {
+  const params = await context.params;
   const { searchParams } = req.nextUrl;
   const chain = params.chain as "sol" | "bsc";
   const address = params.address;

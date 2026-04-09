@@ -7,7 +7,8 @@ import { walletSubmission, walletVouch } from "@/drizzle/db/schema";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { checkOrigin } from "@/lib/assert-origin";
 
-export async function POST(_request: Request, { params }: { params: { id: string } }) {
+export async function POST(_request: Request, context: { params: Promise<{ id: string }> }) {
+  const params = await context.params;
   const originErr = checkOrigin(_request);
   if (originErr) return originErr;
 

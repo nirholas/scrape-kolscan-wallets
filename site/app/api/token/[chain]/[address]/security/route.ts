@@ -128,8 +128,9 @@ async function fetchGoPlusSecurity(chain: "bsc" | "eth", address: string): Promi
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { chain: string; address: string } }
+  context: { params: Promise<{ chain: string; address: string }> }
 ) {
+  const params = await context.params;
   const chain = params.chain as "sol" | "bsc";
   const address = params.address;
 

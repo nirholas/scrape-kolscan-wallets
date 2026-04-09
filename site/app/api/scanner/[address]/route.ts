@@ -3,8 +3,9 @@ import { calculateRiskScore } from '@/lib/security-scorer';
 
 export async function GET(
   request: Request,
-  { params }: { params: { address: string } }
+  context: { params: Promise<{ address: string }> }
 ) {
+  const params = await context.params;
   const { searchParams } = new URL(request.url);
   const chain = searchParams.get('chain');
   const address = params.address;

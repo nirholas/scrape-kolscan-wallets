@@ -3,8 +3,9 @@ import { BITQUERY_QUERIES, executeBitquery } from "@/lib/proxy/sources/bitquery"
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { chain: string } }
+  context: { params: Promise<{ chain: string }> }
 ) {
+  const params = await context.params;
   try {
     const chain = params.chain.toLowerCase();
     

@@ -3,8 +3,9 @@ import { getDuneExecutionStatus } from "@/lib/proxy/sources/dune";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { executionId: string } }
+  context: { params: Promise<{ executionId: string }> }
 ) {
+  const params = await context.params;
   try {
     const data = await getDuneExecutionStatus(params.executionId);
     return NextResponse.json(data);

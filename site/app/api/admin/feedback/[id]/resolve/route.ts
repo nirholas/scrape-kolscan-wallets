@@ -6,7 +6,8 @@ import { feedback, user } from "@/drizzle/db/schema";
 import { eq } from "drizzle-orm";
 import { checkOrigin } from "@/lib/assert-origin";
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  const params = await context.params;
   const originErr = checkOrigin(request);
   if (originErr) return originErr;
 

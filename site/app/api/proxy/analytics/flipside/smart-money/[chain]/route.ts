@@ -3,8 +3,9 @@ import { FLIPSIDE_QUERIES, executeFlipsideQuery } from "@/lib/proxy/sources/flip
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { chain: string } }
+  context: { params: Promise<{ chain: string }> }
 ) {
+  const params = await context.params;
   try {
     const chain = params.chain.toLowerCase();
     const { searchParams } = new URL(req.url);

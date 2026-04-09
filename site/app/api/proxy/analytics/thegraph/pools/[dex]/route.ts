@@ -3,8 +3,9 @@ import { GRAPH_QUERIES, executeGraphQuery, SUBGRAPHS } from "@/lib/proxy/sources
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { dex: string } }
+  context: { params: Promise<{ dex: string }> }
 ) {
+  const params = await context.params;
   try {
     const dex = params.dex.toLowerCase();
     

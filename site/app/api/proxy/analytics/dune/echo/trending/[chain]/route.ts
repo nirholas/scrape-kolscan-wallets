@@ -3,8 +3,9 @@ import { getDuneEchoTrending } from "@/lib/proxy/sources/dune";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { chain: string } }
+  context: { params: Promise<{ chain: string }> }
 ) {
+  const params = await context.params;
   try {
     const data = await getDuneEchoTrending(params.chain);
     return NextResponse.json(data);

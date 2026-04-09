@@ -21,8 +21,9 @@ async function fetchUpstream(url: string, headers: Record<string, string> = {}):
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { address: string } }
+  context: { params: Promise<{ address: string }> }
 ) {
+  const params = await context.params;
   const { address } = params;
   const userIp = request.headers.get('x-forwarded-for') || '127.0.0.1';
   const apiKey = request.headers.get('x-api-key') || request.headers.get('authorization')?.replace('Bearer ', '') || null;

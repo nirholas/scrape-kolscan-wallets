@@ -4,8 +4,9 @@ import { checkOrigin } from "@/lib/assert-origin";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { queryId: string } }
+  context: { params: Promise<{ queryId: string }> }
 ) {
+  const params = await context.params;
   try {
     const originError = checkOrigin(req);
     if (originError) return originError;

@@ -3,7 +3,8 @@ import { NextRequest } from "next/server";
 import { createProxyRoute } from "@/lib/proxy/handler";
 import { DEXSCREENER_BASE_URL } from "@/lib/proxy/sources/dexscreener";
 
-export async function GET(req: NextRequest, { params }: { params: { chainId: string, pairAddress: string } }) {
+export async function GET(req: NextRequest, context: { params: Promise<{ chainId: string, pairAddress: string }> }) {
+  const params = await context.params;
   return createProxyRoute(req, params, {
     baseUrl: DEXSCREENER_BASE_URL,
     rateLimit: {

@@ -3,8 +3,9 @@ import { proxyHandler } from '@/lib/proxy/handler';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { address: string } }
+  context: { params: Promise<{ address: string }> }
 ) {
+  const params = await context.params;
   return proxyHandler({
     source: 'solscan',
     endpoint: `/account/transactions`,

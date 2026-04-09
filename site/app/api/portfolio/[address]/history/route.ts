@@ -11,8 +11,9 @@ type Period = (typeof VALID_PERIODS)[number];
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { address: string } },
+  context: { params: Promise<{ address: string }> },
 ) {
+  const params = await context.params;
   const parsed = paramsSchema.safeParse(params);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid address" }, { status: 400 });

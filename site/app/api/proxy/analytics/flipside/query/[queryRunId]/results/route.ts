@@ -3,8 +3,9 @@ import { getFlipsideQueryResults } from "@/lib/proxy/sources/flipside";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { queryRunId: string } }
+  context: { params: Promise<{ queryRunId: string }> }
 ) {
+  const params = await context.params;
   try {
     const data = await getFlipsideQueryResults(params.queryRunId);
     return NextResponse.json(data);

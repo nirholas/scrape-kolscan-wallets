@@ -3,8 +3,9 @@ import { getDuneExecutionResults } from "@/lib/proxy/sources/dune";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { executionId: string } }
+  context: { params: Promise<{ executionId: string }> }
 ) {
+  const params = await context.params;
   try {
     const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get("limit") || "1000", 10);
