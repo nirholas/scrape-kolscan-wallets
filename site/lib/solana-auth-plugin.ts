@@ -95,7 +95,8 @@ export function solanaWallet(): BetterAuthPlugin {
                 message: "Failed to create user",
               });
             }
-            dbUser = { user: created, accounts: [] } as typeof dbUser;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            dbUser = { user: created, accounts: [] } as any;
           }
 
           // Create session
@@ -108,12 +109,12 @@ export function solanaWallet(): BetterAuthPlugin {
             });
           }
 
-          await setSessionCookie(ctx, { session, user: dbUser.user });
+          await setSessionCookie(ctx, { session, user: dbUser!.user });
 
           return ctx.json({
             token: session.token,
             success: true,
-            user: { id: dbUser.user.id, walletAddress },
+            user: { id: dbUser!.user.id, walletAddress },
           });
         },
       ),

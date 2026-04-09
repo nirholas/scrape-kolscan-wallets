@@ -64,7 +64,6 @@ interface HoldingEntry {
     launchpad_platform: string;
     price: string;
   };
-  };
 }
 
 interface WalletData {
