@@ -17,22 +17,22 @@ export const X402_PAYMENT_ADDRESS =
 
 /** Per-route pricing — $0.01 USDC on Base mainnet for every data endpoint. */
 export const X402_ROUTES = {
-  "/api/wallets": { price: "$0.01" as const, network: "base-mainnet" as const },
-  "/api/leaderboard": { price: "$0.01" as const, network: "base-mainnet" as const },
-  "/api/trades": { price: "$0.01" as const, network: "base-mainnet" as const },
-  "/api/smart-money": { price: "$0.01" as const, network: "base-mainnet" as const },
-  "/api/x-tracker": { price: "$0.01" as const, network: "base-mainnet" as const },
-  "/api/portfolio": { price: "$0.01" as const, network: "base-mainnet" as const },
-  "/api/scanner": { price: "$0.01" as const, network: "base-mainnet" as const },
-  "/api/x-profiles": { price: "$0.01" as const, network: "base-mainnet" as const },
-  "/api/trending": { price: "$0.01" as const, network: "base-mainnet" as const },
-  "/api/search": { price: "$0.01" as const, network: "base-mainnet" as const },
-  "/api/token": { price: "$0.01" as const, network: "base-mainnet" as const },
-  "/api/proxy/solana": { price: "$0.01" as const, network: "base-mainnet" as const },
-  "/api/proxy/evm": { price: "$0.01" as const, network: "base-mainnet" as const },
-  "/api/proxy/market": { price: "$0.01" as const, network: "base-mainnet" as const },
-  "/api/proxy/analytics": { price: "$0.01" as const, network: "base-mainnet" as const },
-  "/api/proxy/unified": { price: "$0.01" as const, network: "base-mainnet" as const },
+  "/api/wallets": { price: "$0.01" as const, network: "base" as const },
+  "/api/leaderboard": { price: "$0.01" as const, network: "base" as const },
+  "/api/trades": { price: "$0.01" as const, network: "base" as const },
+  "/api/smart-money": { price: "$0.01" as const, network: "base" as const },
+  "/api/x-tracker": { price: "$0.01" as const, network: "base" as const },
+  "/api/portfolio": { price: "$0.01" as const, network: "base" as const },
+  "/api/scanner": { price: "$0.01" as const, network: "base" as const },
+  "/api/x-profiles": { price: "$0.01" as const, network: "base" as const },
+  "/api/trending": { price: "$0.01" as const, network: "base" as const },
+  "/api/search": { price: "$0.01" as const, network: "base" as const },
+  "/api/token": { price: "$0.01" as const, network: "base" as const },
+  "/api/proxy/solana": { price: "$0.01" as const, network: "base" as const },
+  "/api/proxy/evm": { price: "$0.01" as const, network: "base" as const },
+  "/api/proxy/market": { price: "$0.01" as const, network: "base" as const },
+  "/api/proxy/analytics": { price: "$0.01" as const, network: "base" as const },
+  "/api/proxy/unified": { price: "$0.01" as const, network: "base" as const },
 } as const;
 
 /** Route prefixes that are subject to x402 gating. */

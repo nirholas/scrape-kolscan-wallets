@@ -30,8 +30,9 @@ interface EvmRouteOptions {
 export function createEvmRoute(handler: EvmHandler, options: EvmRouteOptions = {}) {
   return async function GET(
     request: NextRequest,
-    { params }: { params: Record<string, string> }
+    { params: paramsPromise }: { params: Promise<Record<string, string>> }
   ): Promise<NextResponse> {
+    const params = await paramsPromise;
     const userIp = request.headers.get("x-forwarded-for") || "127.0.0.1";
     const apiKey =
       request.headers.get("x-api-key") ||
