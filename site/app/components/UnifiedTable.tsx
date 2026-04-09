@@ -33,14 +33,14 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  smart_degen: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  kol: "bg-buy/20 text-buy border-buy/30",
-  launchpad_smart: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  fresh_wallet: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-  snipe_bot: "bg-sell/20 text-sell border-sell/30",
-  live: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
-  top_followed: "bg-pink-500/20 text-pink-400 border-pink-500/30",
-  top_renamed: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+  smart_degen: "bg-accent/10 text-accent border-accent/20",
+  kol:          "bg-buy/10 text-buy border-buy/20",
+  launchpad_smart: "bg-accent/10 text-accent border-accent/20",
+  fresh_wallet: "bg-zinc-800 text-zinc-500 border-zinc-700",
+  snipe_bot:    "bg-sell/10 text-sell border-sell/20",
+  live:         "bg-buy/10 text-buy border-buy/20",
+  top_followed: "bg-accent/10 text-accent border-accent/20",
+  top_renamed:  "bg-zinc-800 text-zinc-500 border-zinc-700",
 };
 
 export default function UnifiedTable({
@@ -127,7 +127,7 @@ export default function UnifiedTable({
     { label: "30D", value: 30 },
   ];
 
-  const thClass = "px-3 py-3 text-left font-medium text-zinc-500 cursor-pointer hover:text-zinc-300 select-none whitespace-nowrap text-xs uppercase tracking-wider transition-colors";
+  const thClass = "px-3 py-2 text-left font-mono text-zinc-600 cursor-pointer hover:text-zinc-300 select-none whitespace-nowrap text-[10px] uppercase tracking-wider transition-colors";
   const explorer = chain === "bsc" ? "https://bscscan.com/address" : "https://solscan.io/account";
 
   return (
@@ -147,7 +147,7 @@ export default function UnifiedTable({
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="bg-bg-card border border-border rounded-xl px-3 py-1.5 text-sm text-zinc-300 outline-none focus:border-buy/40 appearance-none cursor-pointer"
+              className="bg-bg-card border border-border rounded px-2.5 py-1 text-xs text-zinc-400 font-mono outline-none focus:border-zinc-600 appearance-none cursor-pointer"
             >
               {categories.map((c) => (
                 <option key={c} value={c}>
@@ -158,15 +158,15 @@ export default function UnifiedTable({
           )}
 
           {/* Timeframe */}
-          <div className="flex bg-bg-card border border-border rounded-xl p-0.5">
+          <div className="flex bg-bg-card border border-border rounded p-0.5">
             {timeframes.map((tf) => (
               <button
                 key={tf.value}
                 onClick={() => setTimeframe(tf.value)}
-                className={`px-3 py-1.5 rounded-[10px] text-sm font-medium transition-all duration-200 ${
+                className={`px-3 py-1 rounded text-xs font-mono uppercase tracking-wider transition-all duration-150 ${
                   timeframe === tf.value
-                    ? "bg-buy text-black shadow-glow"
-                    : "text-zinc-500 hover:text-white"
+                    ? "bg-zinc-800 text-white"
+                    : "text-zinc-600 hover:text-white"
                 }`}
               >
                 {tf.label}
@@ -181,7 +181,7 @@ export default function UnifiedTable({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search..."
-            className="bg-bg-card border border-border rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder:text-zinc-600 outline-none focus:border-buy/40 focus:ring-1 focus:ring-buy/20 w-full sm:w-44 transition-all"
+            className="bg-bg-card border border-border rounded pl-8 pr-3 py-1 text-xs text-white font-mono placeholder:text-zinc-700 outline-none focus:border-zinc-600 w-full sm:w-40 transition-all"
             />
           </div>
 
@@ -191,22 +191,22 @@ export default function UnifiedTable({
       </div>
 
       {/* Table */}
-      <div className="bg-bg-card rounded-2xl border border-border overflow-hidden shadow-card">
+      <div className="bg-bg-card rounded border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border">
-                <th className="px-3 py-3 text-left font-medium text-zinc-500 text-xs uppercase tracking-wider w-12">#</th>
+                <th className="px-3 py-2 text-left font-mono text-zinc-600 text-[10px] uppercase tracking-wider w-12">#</th>
                 <th className={thClass} onClick={() => toggleSort("name")}>
                   Name <SortIcon field="name" current={sortField} dir={sortDir} />
                 </th>
                 {showSource && (
-                  <th className="px-3 py-3 text-left font-medium text-zinc-500 text-xs uppercase tracking-wider">Source</th>
+                  <th className="px-3 py-2 text-left font-mono text-zinc-600 text-[10px] uppercase tracking-wider">Source</th>
                 )}
                 {showCategory && (
-                  <th className="px-3 py-3 text-left font-medium text-zinc-500 text-xs uppercase tracking-wider">Type</th>
+                  <th className="px-3 py-2 text-left font-mono text-zinc-600 text-[10px] uppercase tracking-wider">Type</th>
                 )}
-                <th className="px-3 py-3 text-left font-medium text-zinc-500 text-xs uppercase tracking-wider">Wallet</th>
+                <th className="px-3 py-2 text-left font-mono text-zinc-600 text-[10px] uppercase tracking-wider">Wallet</th>
                 <th className={thClass} onClick={() => toggleSort("profit_7d")}>
                   Profit <SortIcon field="profit_7d" current={sortField} dir={sortDir} />
                 </th>
@@ -219,7 +219,7 @@ export default function UnifiedTable({
                 <th className={thClass} onClick={() => toggleSort("winrate_7d")}>
                   Win% <SortIcon field="winrate_7d" current={sortField} dir={sortDir} />
                 </th>
-                <th className="px-3 py-3 text-left font-medium text-zinc-500 text-xs uppercase tracking-wider">Links</th>
+                <th className="px-3 py-2 text-left font-mono text-zinc-600 text-[10px] uppercase tracking-wider">Links</th>
               </tr>
             </thead>
             <tbody>
@@ -233,10 +233,10 @@ export default function UnifiedTable({
                 return (
                   <tr
                     key={w.wallet_address}
-                    className="border-b border-border/50 last:border-b-0 hover:bg-bg-hover/50 transition-colors group"
+                    className="border-b border-zinc-900 last:border-b-0 hover:bg-bg-card transition-colors group"
                   >
-                    <td className="px-3 py-3 text-zinc-600 text-sm tabular-nums">{i + 1}</td>
-                    <td className="px-3 py-3">
+                    <td className="px-3 py-2 text-zinc-700 text-[11px] font-mono tabular-nums">{i + 1}</td>
+                    <td className="px-3 py-2">
                       <div className="flex items-center gap-2">
                         {w.avatar && (
                           <img src={w.avatar} alt="" className="w-5 h-5 rounded-full" loading="lazy" />
@@ -251,11 +251,7 @@ export default function UnifiedTable({
                     </td>
                     {showSource && (
                       <td className="px-3 py-3">
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded border ${
-                          w.source === "kolscan"
-                            ? "bg-accent/20 text-accent border-accent/30"
-                            : "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
-                        }`}>
+                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border bg-zinc-900 text-zinc-500 border-zinc-800">
                           {w.source === "kolscan" ? "KolScan" : "GMGN"}
                         </span>
                       </td>
@@ -283,14 +279,14 @@ export default function UnifiedTable({
                     }`}>
                       {formatProfit(profit)}
                     </td>
-                    <td className="px-3 py-3 text-sm text-buy tabular-nums">{buys}</td>
-                    <td className="px-3 py-3 text-sm text-sell tabular-nums">{sells}</td>
-                    <td className="px-3 py-3 text-sm tabular-nums">
+                    <td className="px-3 py-2 text-xs text-buy tabular-nums">{buys}</td>
+                    <td className="px-3 py-2 text-xs text-sell tabular-nums">{sells}</td>
+                    <td className="px-3 py-2 text-xs tabular-nums">
                       <span className={wr >= 0.5 ? "text-buy" : wr > 0 ? "text-sell" : "text-zinc-600"}>
                         {wr > 0 ? `${(wr * 100).toFixed(1)}%` : "—"}
                       </span>
                     </td>
-                    <td className="px-3 py-3 text-sm">
+                    <td className="px-3 py-2 text-xs">
                       <div className="flex gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
                         {w.twitter && (
                           <a href={w.twitter} target="_blank" rel="noopener noreferrer"
@@ -298,7 +294,7 @@ export default function UnifiedTable({
                         )}
                         <a href={`https://gmgn.ai/${w.chain === "bsc" ? "bsc" : "sol"}/address/${w.wallet_address}?ref=nichxbt`}
                           target="_blank" rel="noopener noreferrer"
-                          className="text-zinc-400 hover:text-yellow-400 transition-colors text-xs" title="GMGN">G</a>
+                          className="text-zinc-600 hover:text-white transition-colors text-xs font-mono" title="GMGN">G</a>
                       </div>
                     </td>
                   </tr>

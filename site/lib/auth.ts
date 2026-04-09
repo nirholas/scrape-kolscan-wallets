@@ -26,7 +26,10 @@ function createAuth() {
           },
         },
       },
-      trustedOrigins: [process.env.NEXT_PUBLIC_URL || "http://localhost:3000"],
+      trustedOrigins: (process.env.BETTER_AUTH_TRUSTED_ORIGINS || process.env.NEXT_PUBLIC_URL || "http://localhost:3000")
+        .split(",")
+        .map((o) => o.trim())
+        .filter(Boolean),
       plugins: [
         admin(),
         username({

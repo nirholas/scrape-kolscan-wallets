@@ -89,7 +89,7 @@ export default function LeaderboardClient({
     { label: "Monthly", value: 30 },
   ];
 
-  const thClass = "px-4 py-3.5 text-left font-medium text-zinc-500 cursor-pointer hover:text-zinc-300 select-none whitespace-nowrap text-xs uppercase tracking-wider transition-colors";
+  const thClass = "px-4 py-2 text-left font-mono text-zinc-600 cursor-pointer hover:text-zinc-300 select-none whitespace-nowrap text-[10px] uppercase tracking-wider transition-colors";
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-10 animate-fade-in">
@@ -105,15 +105,15 @@ export default function LeaderboardClient({
         {/* Controls */}
           <div className="flex items-center gap-2 flex-wrap">
           {/* Timeframe Tabs */}
-          <div className="flex bg-bg-card border border-border rounded-xl p-0.5">
+          <div className="flex bg-bg-card border border-border rounded p-0.5">
             {timeframes.map((tf) => (
               <button
                 key={tf.value}
                 onClick={() => setTimeframe(tf.value)}
-                className={`px-4 py-1.5 rounded-[10px] text-sm font-medium transition-all duration-200 ${
+                className={`px-3 py-1 rounded text-xs font-mono uppercase tracking-wider transition-all duration-150 ${
                   timeframe === tf.value
-                    ? "bg-buy text-black shadow-glow"
-                    : "text-zinc-500 hover:text-white"
+                    ? "bg-zinc-800 text-white"
+                    : "text-zinc-600 hover:text-white"
                 }`}
               >
                 {tf.label}
@@ -128,7 +128,7 @@ export default function LeaderboardClient({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search..."
-              className="bg-bg-card border border-border rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder:text-zinc-600 outline-none focus:border-buy/40 focus:ring-1 focus:ring-buy/20 w-full sm:w-44 transition-all"
+              className="bg-bg-card border border-border rounded pl-8 pr-3 py-1 text-xs text-white font-mono placeholder:text-zinc-700 outline-none focus:border-zinc-600 w-full sm:w-40 transition-all"
             />
           </div>
 
@@ -141,16 +141,16 @@ export default function LeaderboardClient({
       </div>
 
       {/* Table */}
-      <div className="bg-bg-card rounded-2xl border border-border overflow-hidden shadow-card">
+      <div className="bg-bg-card rounded border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border">
-                <th className="px-4 py-3.5 text-left font-medium text-zinc-500 text-xs uppercase tracking-wider w-12">#</th>
+                <th className="px-4 py-2 text-left font-mono text-zinc-600 text-[10px] uppercase tracking-wider w-12">#</th>
                 <th className={thClass} onClick={() => toggleSort("name")}>
                   Name <SortIcon field="name" current={sortField} dir={sortDir} />
                 </th>
-                <th className="px-4 py-3.5 text-left font-medium text-zinc-500 text-xs uppercase tracking-wider">Wallet</th>
+                <th className="px-4 py-2 text-left font-mono text-zinc-600 text-[10px] uppercase tracking-wider">Wallet</th>
                 <th className={thClass} onClick={() => toggleSort("profit")}>
                   Profit <SortIcon field="profit" current={sortField} dir={sortDir} />
                 </th>
@@ -163,25 +163,34 @@ export default function LeaderboardClient({
                 <th className={thClass} onClick={() => toggleSort("winrate")}>
                   Win% <SortIcon field="winrate" current={sortField} dir={sortDir} />
                 </th>
-                <th className="px-4 py-3.5 text-left font-medium text-zinc-500 text-xs uppercase tracking-wider">Links</th>
+                <th className="px-4 py-2 text-left font-mono text-zinc-600 text-[10px] uppercase tracking-wider">Links</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((entry, i) => (
                 <tr
                   key={`${entry.wallet_address}-${entry.timeframe}`}
-                  className="border-b border-border/50 last:border-b-0 hover:bg-bg-hover/50 transition-colors group"
+                  className="border-b border-zinc-900 last:border-b-0 hover:bg-bg-card transition-colors group"
                 >
-                  <td className="px-4 py-3 text-zinc-600 text-sm tabular-nums">{i + 1}</td>
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/wallet/${entry.wallet_address}`}
-                      className="text-white text-sm font-medium hover:text-buy transition-colors"
-                    >
-                      {entry.name}
-                    </Link>
+                  <td className="px-4 py-2 text-zinc-700 text-[11px] font-mono tabular-nums">{i + 1}</td>
+                  <td className="px-4 py-2">
+                    <div className="flex items-center gap-2">
+                      {entry.avatar ? (
+                        <img src={entry.avatar} alt="" className="w-6 h-6 rounded-full flex-shrink-0" loading="lazy" />
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px] font-mono font-bold text-zinc-400 flex-shrink-0">
+                          {entry.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <Link
+                        href={`/wallet/${entry.wallet_address}`}
+                        className="text-white text-sm font-medium hover:text-buy transition-colors"
+                      >
+                        {entry.name}
+                      </Link>
+                    </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-2">
                     <a
                       href={`https://solscan.io/account/${entry.wallet_address}`}
                       target="_blank"
@@ -198,12 +207,12 @@ export default function LeaderboardClient({
                     {entry.profit > 0 ? "+" : ""}
                     {entry.profit.toFixed(2)}
                   </td>
-                  <td className="px-4 py-3 text-sm text-buy tabular-nums">{entry.wins}</td>
-                  <td className="px-4 py-3 text-sm text-sell tabular-nums">{entry.losses}</td>
-                  <td className="px-4 py-3 text-sm tabular-nums">
+                  <td className="px-4 py-2 text-xs text-buy tabular-nums">{entry.wins}</td>
+                  <td className="px-4 py-2 text-xs text-sell tabular-nums">{entry.losses}</td>
+                  <td className="px-4 py-2 text-xs tabular-nums">
                     <WinRate wins={entry.wins} losses={entry.losses} />
                   </td>
-                  <td className="px-4 py-3 text-sm">
+                  <td className="px-4 py-2 text-xs">
                     <div className="flex gap-2.5 opacity-40 group-hover:opacity-100 transition-opacity">
                       {entry.twitter && (
                         <a href={entry.twitter} target="_blank" rel="noopener noreferrer"
@@ -211,7 +220,7 @@ export default function LeaderboardClient({
                       )}
                       {entry.telegram && (
                         <a href={entry.telegram} target="_blank" rel="noopener noreferrer"
-                          className="text-zinc-400 hover:text-blue-400 transition-colors text-xs" title="Telegram">✈</a>
+                          className="text-zinc-600 hover:text-accent transition-colors text-xs" title="Telegram">✈</a>
                       )}
                     </div>
                   </td>

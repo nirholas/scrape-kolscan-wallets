@@ -4,6 +4,7 @@ export interface KolEntry {
   name: string;
   telegram: string | null;
   twitter: string | null;
+  avatar?: string | null;
   profit: number;
   wins: number;
   losses: number;

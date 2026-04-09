@@ -32,6 +32,7 @@ export async function GET(req: NextRequest) {
       id: t.id,
       walletAddress: t.walletAddress,
       walletLabel: t.walletLabel,
+      walletAvatar: t.walletAvatar,
       walletTags: t.walletTags,
       chain: t.chain,
       type: t.type,

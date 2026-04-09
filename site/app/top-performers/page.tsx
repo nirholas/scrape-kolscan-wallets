@@ -1,5 +1,5 @@
 import LeaderboardClient from "../leaderboard/LeaderboardClient";
-import { getData } from "@/lib/data";
+import { getDataWithAvatars } from "@/lib/data";
 
 export const metadata = {
   title: "Top Performers | KolQuest — Highest Win Rate KOLs",
@@ -8,7 +8,7 @@ export const metadata = {
 };
 
 export default async function TopPerformersPage() {
-  const data = await getData();
+  const data = await getDataWithAvatars();
   return (
     <LeaderboardClient
       data={data}

@@ -23,6 +23,17 @@ export async function getData(): Promise<KolEntry[]> {
   return res.json();
 }
 
+export async function getDataWithAvatars(): Promise<KolEntry[]> {
+  const [entries, xProfiles] = await Promise.all([getData(), getXProfiles()]);
+  for (const e of entries) {
+    if (!e.avatar && e.twitter) {
+      const xp = getXProfile(xProfiles, e.twitter);
+      if (xp?.avatar) e.avatar = xp.avatar;
+    }
+  }
+  return entries;
+}
+
 // --- GMGN Data ---
 function parseGmgnRaw(raw: any, chain: "sol" | "bsc"): GmgnWallet[] {
   const wallets: GmgnWallet[] = [];

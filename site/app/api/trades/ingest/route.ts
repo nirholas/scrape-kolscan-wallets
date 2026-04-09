@@ -53,6 +53,7 @@ export async function POST(req: NextRequest) {
       txHash: typeof t.txHash === "string" ? t.txHash.slice(0, 128) : null,
       source: typeof t.source === "string" ? t.source : "external",
       walletLabel: typeof t.walletLabel === "string" ? t.walletLabel.slice(0, 120) : null,
+      walletAvatar: typeof t.walletAvatar === "string" ? t.walletAvatar : null,
       tradedAt: new Date(t.tradedAt),
     }));
 

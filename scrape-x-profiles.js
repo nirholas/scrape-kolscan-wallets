@@ -1,9 +1,9 @@
 /**
  * Scrape X/Twitter profile data for all KOLs — no auth token required.
  *
- * Uses Playwright to load public X profile pages and intercept the GraphQL
- * responses that X's own JS makes. Since public profiles are viewable without
- * login, no credentials are needed.
+ * Strategy: use Playwright once to load x.com and harvest real guest session
+ * cookies/tokens, then use those for fast direct API calls (no browser overhead
+ * per profile). Refreshes the session automatically when X blocks us.
  *
  * Usage:
  *   node scrape-x-profiles.js
@@ -19,13 +19,33 @@ import { chromium } from "playwright";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+const GRAPHQL_BASE = "https://x.com/i/api/graphql";
+const QUERY_ID = "NimuplG1OB7Fd2btCLdBOw"; // UserByScreenName
+const BEARER =
+  "AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA";
+const UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+
+const USER_FEATURES = {
+  hidden_profile_likes_enabled: true,
+  hidden_profile_subscriptions_enabled: true,
+  responsive_web_graphql_exclude_directive_enabled: true,
+  verified_phone_label_enabled: false,
+  subscriptions_verification_info_is_identity_verified_enabled: true,
+  subscriptions_verification_info_verified_since_enabled: true,
+  highlights_tweets_tab_ui_enabled: true,
+  responsive_web_twitter_article_notes_tab_enabled: false,
+  creator_subscriptions_tweet_preview_api_enabled: true,
+  responsive_web_graphql_skip_user_profile_image_extensions_enabled: false,
+  responsive_web_graphql_timeline_navigation_enabled: true,
+};
+
 // --------------------------------------------------------------------------
 // 1. Collect all unique Twitter usernames from our data files
 // --------------------------------------------------------------------------
 function extractUsernames() {
   const usernames = new Set();
 
-  // KolScan leaderboard
   for (const filepath of [
     path.join(__dirname, "site/data/kolscan-leaderboard.json"),
     path.join(__dirname, "output/kolscan-leaderboard.json"),
@@ -41,7 +61,6 @@ function extractUsernames() {
     }
   }
 
-  // GMGN wallets
   for (const filepath of [
     path.join(__dirname, "site/data/solwallets.json"),
     path.join(__dirname, "solwallets.json"),
@@ -67,14 +86,80 @@ function extractUsernames() {
 }
 
 // --------------------------------------------------------------------------
-// 2. Parse a raw GraphQL UserByScreenName result into a clean profile object
+// 2. Use Playwright to harvest real working request headers from x.com
+//    by intercepting an actual outgoing GraphQL request.
+// --------------------------------------------------------------------------
+async function harvestSession() {
+  console.log("  Launching browser to harvest session headers...");
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({ userAgent: UA, locale: "en-US" });
+  const page = await context.newPage();
+
+  let harvestedHeaders = null;
+
+  // Intercept an outgoing GraphQL request and steal its headers
+  await page.route("**/graphql/**", async (route) => {
+    const req = route.request();
+    if (!harvestedHeaders) {
+      harvestedHeaders = req.headers();
+    }
+    await route.continue();
+  });
+
+  // Load a well-known public profile to trigger a GraphQL request
+  await page.goto("https://x.com/elonmusk", {
+    waitUntil: "domcontentloaded",
+    timeout: 30000,
+  });
+
+  // Wait up to 8s for the GraphQL request to fire
+  for (let i = 0; i < 40 && !harvestedHeaders; i++) await sleep(200);
+
+  await browser.close();
+
+  if (!harvestedHeaders) throw new Error("Failed to harvest session — no GraphQL request observed");
+
+  console.log(`  Got headers — keys: ${Object.keys(harvestedHeaders).join(", ")}`);
+  return harvestedHeaders;
+}
+
+// --------------------------------------------------------------------------
+// 3. Direct API call using harvested session headers
+// --------------------------------------------------------------------------
+async function fetchProfile(session, username) {
+  const params = new URLSearchParams();
+  params.set("variables", JSON.stringify({ screen_name: username, withSafetyModeUserFields: true }));
+  params.set("features", JSON.stringify(USER_FEATURES));
+  const url = `${GRAPHQL_BASE}/${QUERY_ID}/UserByScreenName?${params}`;
+
+  // Use the real headers captured from the browser — guaranteed to work
+  const res = await fetch(url, { headers: session });
+
+  if (res.status === 429) {
+    const reset = res.headers.get("x-rate-limit-reset");
+    const waitSec = reset ? Math.max(parseInt(reset) - Math.floor(Date.now() / 1000), 5) : 60;
+    throw new Error(`RATE_LIMIT:${waitSec}`);
+  }
+  if (res.status === 401 || res.status === 403) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`AUTH_FAIL:${res.status}:${body.slice(0, 100)}`);
+  }
+  if (!res.ok) throw new Error(`HTTP_${res.status}`);
+
+  const json = await res.json();
+  if (json.errors?.length) throw new Error(`GQL:${json.errors.map((e) => e.message).join("; ")}`);
+
+  const result = json?.data?.user?.result;
+  if (!result) throw new Error(`NOT_FOUND:@${username}`);
+  if (result.__typename === "UserUnavailable") throw new Error(`UNAVAILABLE:@${username}:${result.reason || ""}`);
+
+  return parseUserResult(result, username);
+}
+
+// --------------------------------------------------------------------------
+// 4. Parse raw GraphQL result into a clean profile object
 // --------------------------------------------------------------------------
 function parseUserResult(result, username) {
-  if (!result) return null;
-  if (result.__typename === "UserUnavailable") {
-    throw new Error(`UNAVAILABLE:@${username}:${result.reason || ""}`);
-  }
-
   const legacy = result.legacy || {};
   const descUrls = legacy.entities?.description?.urls || [];
   const websiteUrl =
@@ -88,7 +173,6 @@ function parseUserResult(result, username) {
     if (u.url && u.expanded_url) bio = bio.replace(u.url, u.expanded_url);
   }
 
-  // Upgrade avatar to full-size (remove _normal suffix)
   let avatar = legacy.profile_image_url_https || null;
   if (avatar) avatar = avatar.replace(/_normal\./, ".");
 
@@ -114,25 +198,20 @@ function parseUserResult(result, username) {
 }
 
 // --------------------------------------------------------------------------
-// 3. Main scraping loop using Playwright
+// 5. Main scraping loop
 // --------------------------------------------------------------------------
 async function scrapeProfiles(usernames) {
   const outputPath = path.join(__dirname, "site/data/x-profiles.json");
 
-  // Load existing profiles to resume
   let existing = {};
   if (fs.existsSync(outputPath)) {
     try {
       existing = JSON.parse(fs.readFileSync(outputPath, "utf-8"));
-      if (Object.keys(existing).length > 0) {
+      if (Object.keys(existing).length > 0)
         console.log(`📂 Loaded ${Object.keys(existing).length} existing profiles`);
-      }
-    } catch {
-      existing = {};
-    }
+    } catch { existing = {}; }
   }
 
-  // Skip already scraped (unless older than 7 days or errored)
   const STALE_MS = 7 * 24 * 60 * 60 * 1000;
   const now = Date.now();
   const toScrape = usernames.filter((u) => {
@@ -142,12 +221,8 @@ async function scrapeProfiles(usernames) {
     return true;
   });
 
-  console.log(`\n🎯 ${usernames.length} total usernames, ${toScrape.length} to scrape (${usernames.length - toScrape.length} cached)\n`);
-
-  if (toScrape.length === 0) {
-    console.log("✅ All profiles up to date!");
-    return existing;
-  }
+  console.log(`\n🎯 ${usernames.length} total, ${toScrape.length} to scrape (${usernames.length - toScrape.length} cached)\n`);
+  if (toScrape.length === 0) { console.log("✅ All profiles up to date!"); return existing; }
 
   const results = { ...existing };
   const saveToDisk = () => fs.writeFileSync(outputPath, JSON.stringify(results, null, 2));
@@ -155,56 +230,35 @@ async function scrapeProfiles(usernames) {
   process.on("SIGINT", () => {
     console.log(`\n\n⚡ Interrupted! Saving ${Object.keys(results).length} profiles...`);
     saveToDisk();
-    console.log(`📁 Saved to ${outputPath}`);
-    console.log(`   Re-run to resume from where you left off.\n`);
+    console.log(`📁 Saved to ${outputPath}\n   Re-run to resume.\n`);
     process.exit(0);
   });
 
-  const CONCURRENCY = 6; // parallel browser pages
-  const SESSION_LIMIT = 100; // rotate context after this many requests
+  // Harvest initial session
+  console.log("🔑 Harvesting session headers from x.com...");
+  let session = await harvestSession();
+  let sessionUses = 0;
+  const SESSION_ROTATE_AFTER = 80;
+
+  let refreshing = false;
+  async function getSession() {
+    if (sessionUses >= SESSION_ROTATE_AFTER && !refreshing) {
+      refreshing = true;
+      console.log(`\n🔄 Rotating session after ${sessionUses} uses...`);
+      session = await harvestSession();
+      sessionUses = 0;
+      refreshing = false;
+      console.log("✅ Fresh session ready\n");
+    }
+    while (refreshing) await sleep(300);
+    sessionUses++;
+    return session;
+  }
+
+  const CONCURRENCY = 20; // many parallel requests — no browser overhead now
   let success = 0;
   let failed = 0;
   let completed = 0;
-
-  console.log("🚀 Launching browser...");
-  const browser = await chromium.launch({ headless: true });
-
-  async function makeContext() {
-    const ctx = await browser.newContext({
-      userAgent:
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-      locale: "en-US",
-      viewport: { width: 1280, height: 900 },
-    });
-    // Block images/media/fonts — we only need the API responses
-    await ctx.route("**/*.{png,jpg,jpeg,gif,webp,svg,mp4,woff,woff2,ttf,otf}", (route) => route.abort());
-    return ctx;
-  }
-
-  // Shared context state — rotated when X starts showing the login wall
-  let sharedCtx = await makeContext();
-  let ctxRequestCount = 0;
-  let rotating = false;
-
-  async function getContext() {
-    // Proactively rotate after SESSION_LIMIT requests to avoid login wall
-    if (ctxRequestCount >= SESSION_LIMIT && !rotating) {
-      rotating = true;
-      console.log(`\n🔄 Rotating browser session after ${ctxRequestCount} requests...`);
-      const oldCtx = sharedCtx;
-      sharedCtx = await makeContext();
-      ctxRequestCount = 0;
-      rotating = false;
-      await oldCtx.close().catch(() => {});
-      console.log("✅ Fresh session ready\n");
-    }
-    // Wait if rotation is in progress
-    while (rotating) await sleep(200);
-    ctxRequestCount++;
-    return sharedCtx;
-  }
-
-  // Work queue — process toScrape with a fixed-size pool of parallel workers
   const queue = [...toScrape];
 
   async function worker() {
@@ -215,44 +269,46 @@ async function scrapeProfiles(usernames) {
       const progress = `[${idx + 1}/${toScrape.length}]`;
 
       try {
-        const ctx = await getContext();
-        const profile = await scrapeOne(ctx, username);
+        const s = await getSession();
+        const profile = await fetchProfile(s, username);
         results[username] = { ...profile, scrapedAt: new Date().toISOString() };
         success++;
         completed++;
         console.log(`${progress} ✅ @${username} — ${profile.name} (${profile.followers.toLocaleString()} followers)`);
-        if (completed % 10 === 0) saveToDisk();
+        if (completed % 20 === 0) saveToDisk();
+
+        // Small delay to avoid hammering
+        await sleep(150 + Math.random() * 100);
       } catch (err) {
         const msg = err.message || String(err);
         completed++;
 
-        if (msg.startsWith("NOT_FOUND") || msg.startsWith("UNAVAILABLE") || msg.startsWith("SUSPENDED")) {
+        if (msg.startsWith("NOT_FOUND") || msg.startsWith("UNAVAILABLE")) {
           console.log(`${progress} ⚠️  ${msg}`);
           results[username] = { username, error: msg, scrapedAt: new Date().toISOString() };
           failed++;
-        } else if (msg.includes("LOGIN_WALL")) {
-          // Session got blocked — put back, force rotate, retry
-          queue.unshift(username);
-          completed--;
-          if (!rotating) {
-            rotating = true;
-            saveToDisk();
-            console.log(`\n🔄 Login wall detected — rotating session...`);
-            const oldCtx = sharedCtx;
-            sharedCtx = await makeContext();
-            ctxRequestCount = 0;
-            rotating = false;
-            await oldCtx.close().catch(() => {});
-            console.log("✅ Fresh session ready\n");
-          } else {
-            await sleep(2000);
-          }
-        } else if (msg.includes("RATE_LIMIT") || msg.includes("429")) {
+        } else if (msg.startsWith("RATE_LIMIT")) {
+          const waitSec = Math.min(parseInt(msg.split(":")[1]) || 60, 900);
           queue.unshift(username);
           completed--;
           saveToDisk();
-          console.log(`${progress} ⏳ Rate limited. Pausing 60s...`);
-          await sleep(60000);
+          console.log(`${progress} ⏳ Rate limited — waiting ${waitSec}s...`);
+          await sleep(waitSec * 1000);
+        } else if (msg.startsWith("AUTH_FAIL")) {
+          // Session rejected — force refresh and retry
+          queue.unshift(username);
+          completed--;
+          if (!refreshing) {
+            refreshing = true;
+            saveToDisk();
+            console.log(`\n🔄 Auth failed — refreshing session...`);
+            session = await harvestSession();
+            sessionUses = 0;
+            refreshing = false;
+            console.log("✅ Fresh session ready\n");
+          } else {
+            await sleep(1000);
+          }
         } else {
           console.log(`${progress} ❌ @${username} — ${msg}`);
           results[username] = { username, error: msg, scrapedAt: new Date().toISOString() };
@@ -262,83 +318,12 @@ async function scrapeProfiles(usernames) {
     }
   }
 
-  // Launch CONCURRENCY workers in parallel
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
 
-  await browser.close();
   saveToDisk();
-  console.log(`\n✅ Done! ${success} scraped, ${failed} failed, ${Object.keys(results).length} total profiles`);
+  console.log(`\n✅ Done! ${success} scraped, ${failed} failed, ${Object.keys(results).length} total`);
   console.log(`📁 Saved to ${outputPath}`);
   return results;
-}
-
-/**
- * Scrape a single profile by navigating to the public X profile page
- * and intercepting the UserByScreenName GraphQL response.
- */
-async function scrapeOne(context, username) {
-  const page = await context.newPage();
-  let profileData = null;
-  let resolveProfile;
-
-  const profilePromise = new Promise((res) => {
-    resolveProfile = res;
-  });
-
-  // Intercept the GraphQL response X's own JS makes when loading a profile
-  page.on("response", async (response) => {
-    const url = response.url();
-    if (!url.includes("UserByScreenName") && !url.includes("UserResultByScreenName")) return;
-    try {
-      const json = await response.json();
-      const result =
-        json?.data?.user?.result ||
-        json?.data?.user_result_by_screen_name?.result;
-      if (result) {
-        resolveProfile(result);
-      }
-    } catch {
-      // not JSON or wrong shape — ignore
-    }
-  });
-
-  try {
-    await page.goto(`https://x.com/${username}`, {
-      waitUntil: "domcontentloaded",
-      timeout: 20000,
-    });
-
-    // Wait up to 12s for the GraphQL response to be intercepted
-    const result = await Promise.race([
-      profilePromise,
-      sleep(12000).then(() => null),
-    ]);
-
-    if (!result) {
-      const finalUrl = page.url();
-      // Login wall — X redirected us to the sign-in flow
-      if (finalUrl.includes("/login") || finalUrl.includes("/i/flow/login")) {
-        throw new Error(`LOGIN_WALL:@${username}`);
-      }
-      const bodyText = await page.textContent("body").catch(() => "");
-      if (bodyText.includes("Account suspended")) throw new Error(`SUSPENDED:@${username}`);
-      if (bodyText.includes("doesn't exist") || bodyText.includes("This account")) {
-        throw new Error(`NOT_FOUND:@${username}`);
-      }
-      // Check for login wall in body text too
-      if (bodyText.includes("Sign in to X") || bodyText.includes("Log in to X")) {
-        throw new Error(`LOGIN_WALL:@${username}`);
-      }
-      throw new Error(`TIMEOUT:@${username} — no GraphQL response intercepted`);
-    }
-
-    profileData = parseUserResult(result, username);
-    if (!profileData) throw new Error(`PARSE_FAIL:@${username}`);
-  } finally {
-    await page.close();
-  }
-
-  return profileData;
 }
 
 function sleep(ms) {

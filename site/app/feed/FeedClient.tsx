@@ -7,6 +7,7 @@ interface Trade {
   id: string;
   walletAddress: string;
   walletLabel: string | null;
+  walletAvatar: string | null;
   chain: string;
   type: "buy" | "sell";
   tokenAddress: string;
@@ -148,10 +149,10 @@ export default function FeedClient() {
             <button
               key={opt.label}
               onClick={() => setChain(opt.value)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`px-2.5 py-1 rounded text-[11px] font-mono uppercase tracking-wider transition-all ${
                 chain === opt.value
-                  ? "bg-white text-black"
-                  : "bg-bg-card border border-border text-zinc-400 hover:text-white"
+                  ? "bg-zinc-800 text-white border border-zinc-700"
+                  : "bg-transparent border border-border text-zinc-600 hover:text-white"
               }`}
             >
               {opt.label}
@@ -169,10 +170,10 @@ export default function FeedClient() {
             <button
               key={opt.label}
               onClick={() => setType(opt.value)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`px-2.5 py-1 rounded text-[11px] font-mono uppercase tracking-wider transition-all ${
                 type === opt.value
-                  ? "bg-white text-black"
-                  : "bg-bg-card border border-border text-zinc-400 hover:text-white"
+                  ? "bg-zinc-800 text-white border border-zinc-700"
+                  : "bg-transparent border border-border text-zinc-600 hover:text-white"
               }`}
             >
               {opt.label}
@@ -184,10 +185,10 @@ export default function FeedClient() {
           {/* Auto-refresh toggle */}
           <button
             onClick={() => setAutoRefresh(!autoRefresh)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+            className={`px-2.5 py-1 rounded text-[11px] font-mono uppercase tracking-wider transition-all flex items-center gap-1.5 ${
               autoRefresh
-                ? "bg-buy/10 border border-buy/30 text-buy"
-                : "bg-bg-card border border-border text-zinc-500"
+                ? "bg-buy/10 border border-buy/20 text-buy"
+                : "border border-border text-zinc-600"
             }`}
           >
             <span className={`w-1.5 h-1.5 rounded-full ${autoRefresh ? "bg-buy animate-pulse" : "bg-zinc-600"}`} />
@@ -210,32 +211,32 @@ export default function FeedClient() {
         </div>
       ) : (
         <>
-          <div className="border border-border rounded-xl overflow-hidden">
+          <div className="border border-border rounded overflow-hidden">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border bg-bg-card/50">
-                  <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-[10px] font-mono text-zinc-600 uppercase tracking-wider">
                     Time
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-[10px] font-mono text-zinc-600 uppercase tracking-wider">
                     Type
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-[10px] font-mono text-zinc-600 uppercase tracking-wider">
                     Wallet
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-[10px] font-mono text-zinc-600 uppercase tracking-wider">
                     Token
                   </th>
-                  <th className="px-4 py-3 text-right text-[11px] font-medium text-zinc-600 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-right text-[10px] font-mono text-zinc-600 uppercase tracking-wider">
                     Amount
                   </th>
-                  <th className="px-4 py-3 text-right text-[11px] font-medium text-zinc-600 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-right text-[10px] font-mono text-zinc-600 uppercase tracking-wider">
                     Profit
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-[10px] font-mono text-zinc-600 uppercase tracking-wider">
                     Chain
                   </th>
-                  <th className="px-4 py-3 text-right text-[11px] font-medium text-zinc-600 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-right text-[10px] font-mono text-zinc-600 uppercase tracking-wider">
                     Tx
                   </th>
                 </tr>
@@ -244,12 +245,12 @@ export default function FeedClient() {
                 {trades.map((t) => (
                   <tr
                     key={t.id}
-                    className="border-b border-border/50 last:border-b-0 hover:bg-bg-card/60 transition-colors"
+                    className="border-b border-zinc-900 last:border-b-0 hover:bg-bg-card transition-colors"
                   >
-                    <td className="px-4 py-3 text-xs text-zinc-500 tabular-nums whitespace-nowrap">
+                    <td className="px-4 py-2 text-xs text-zinc-500 tabular-nums whitespace-nowrap">
                       {timeAgo(t.tradedAt)}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-2">
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold uppercase ${
                           t.type === "buy"
@@ -260,15 +261,24 @@ export default function FeedClient() {
                         {t.type}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <Link
-                        href={walletHref(t.chain, t.walletAddress)}
-                        className="text-sm text-white hover:text-accent transition-colors"
-                      >
-                        {t.walletLabel || shortAddr(t.walletAddress)}
-                      </Link>
+                    <td className="px-4 py-2">
+                      <div className="flex items-center gap-2">
+                        {t.walletAvatar ? (
+                          <img src={t.walletAvatar} alt="" className="w-5 h-5 rounded-full flex-shrink-0" loading="lazy" />
+                        ) : (
+                          <div className="w-5 h-5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[9px] font-mono font-bold text-zinc-500 flex-shrink-0">
+                            {(t.walletLabel || t.walletAddress).charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <Link
+                          href={walletHref(t.chain, t.walletAddress)}
+                          className="text-sm text-white hover:text-accent transition-colors"
+                        >
+                          {t.walletLabel || shortAddr(t.walletAddress)}
+                        </Link>
+                      </div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-2">
                       <div className="flex items-center gap-2">
                         {t.tokenLogo && (
                           <img src={t.tokenLogo} alt="" className="w-5 h-5 rounded-full" />
@@ -290,10 +300,10 @@ export default function FeedClient() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-right text-sm tabular-nums font-medium text-zinc-300">
+                    <td className="px-4 py-2 text-right text-sm tabular-nums font-medium text-zinc-300">
                       {formatUsd(t.amountUsd)}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-2 text-right">
                       {t.realizedProfit != null ? (
                         <span className={`text-sm tabular-nums font-medium ${t.realizedProfit > 0 ? "text-buy" : "text-sell"}`}>
                           {t.realizedProfit > 0 ? "+" : ""}{formatUsd(t.realizedProfit)}
@@ -302,12 +312,12 @@ export default function FeedClient() {
                         <span className="text-xs text-zinc-700">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-2">
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500 border border-zinc-700 uppercase">
                         {t.chain}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-2 text-right">
                       {t.txHash ? (
                         <a
                           href={explorerUrl(t.chain, t.txHash)}
@@ -331,7 +341,7 @@ export default function FeedClient() {
             <div className="flex justify-center mt-6">
               <button
                 onClick={() => fetchTrades(true)}
-                className="px-6 py-2.5 bg-bg-card border border-border rounded-xl text-sm text-zinc-400 hover:text-white hover:border-zinc-600 transition-all"
+                className="px-4 py-1.5 bg-bg-card border border-border rounded text-xs font-mono text-zinc-500 hover:text-white hover:border-zinc-600 transition-all"
               >
                 Load more
               </button>

@@ -141,6 +141,7 @@ export const trade = pgTable(
     txHash: varchar("tx_hash", { length: 128 }),
     source: text("source").notNull().default("gmgn"), // "gmgn" | "onchain"
     walletLabel: varchar("wallet_label", { length: 120 }),
+    walletAvatar: text("wallet_avatar"),
     walletTags: text("wallet_tags"), // JSON array as string
     tradedAt: timestamp("traded_at").notNull(),
     createdAt: timestamp("created_at").notNull().defaultNow(),

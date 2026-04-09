@@ -1,5 +1,5 @@
 import LeaderboardClient from "./LeaderboardClient";
-import { getData } from "@/lib/data";
+import { getDataWithAvatars } from "@/lib/data";
 
 export const metadata = {
   title: "Leaderboard | KolQuest",
@@ -8,6 +8,6 @@ export const metadata = {
 };
 
 export default async function LeaderboardPage() {
-  const data = await getData();
+  const data = await getDataWithAvatars();
   return <LeaderboardClient data={data} />;
 }

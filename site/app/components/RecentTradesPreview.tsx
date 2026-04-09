@@ -7,6 +7,7 @@ interface Trade {
   id: string;
   walletAddress: string;
   walletLabel: string | null;
+  walletAvatar: string | null;
   chain: string;
   type: "buy" | "sell";
   tokenSymbol: string | null;
@@ -95,8 +96,15 @@ export default function RecentTradesPreview() {
                   {t.tokenSymbol || "???"}
                 </div>
                 <div className="flex items-center justify-between mt-1">
-                  <span className="text-[11px] text-zinc-500 truncate">
-                    {t.walletLabel || shortAddr(t.walletAddress)}
+                  <span className="flex items-center gap-1.5 text-[11px] text-zinc-500 truncate min-w-0">
+                    {t.walletAvatar ? (
+                      <img src={t.walletAvatar} alt="" className="w-4 h-4 rounded-full flex-shrink-0" loading="lazy" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0">
+                        {(t.walletLabel || t.walletAddress).charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <span className="truncate">{t.walletLabel || shortAddr(t.walletAddress)}</span>
                   </span>
                   {t.amountUsd != null && (
                     <span className="text-[11px] text-zinc-400 tabular-nums ml-2">

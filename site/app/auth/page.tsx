@@ -21,7 +21,9 @@ export default function AuthPage() {
 function AuthContent() {
   const { data, isPending, refetch } = useSession();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/submit";
+  const raw = searchParams.get("redirect") || "/submit";
+  // Only allow internal paths — reject anything with a scheme or protocol-relative URL
+  const redirectTo = raw.startsWith("/") && !raw.startsWith("//") && !raw.includes("://") ? raw : "/submit";
   const [tab, setTab] = useState<"signin" | "signup">("signin");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
