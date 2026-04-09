@@ -24,7 +24,7 @@
   "crons": [
     {
       "path": "/api/cron/analytics-refresh",
-      "schedule": "0 */15 * * * *"
+      "schedule": "*/15 * * * *"
     }
   ]
 }
