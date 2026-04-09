@@ -9,6 +9,7 @@ type NavItem = {
   desc?: string;
   external?: boolean;
   live?: boolean;
+  beta?: boolean;
 };
 
 function NavDropdown({
@@ -122,6 +123,7 @@ export default function DesktopNavLinks() {
           { href: "/track", label: "Track", desc: "New tokens from tracked wallets" },
           { href: "/tracker", label: "Wallet Tracker", desc: "Your tracked wallet portfolio" },
           { href: "/all-solana", label: "All Solana", desc: "Combined deduplicated wallets" },
+          { href: "/polymarket", label: "Polymarket", desc: "Prediction market pros", beta: true },
         ]}
       />
       <Link href="/docs" className={linkCls("/docs")}>

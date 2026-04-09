@@ -66,30 +66,23 @@ export const verification = pgTable("verification", {
 // --- API Keys ---
 
 export const apiKey = pgTable(
-  "api_key",
+  "api_keys",
   {
     id: text("id").primaryKey(),
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    name: varchar("name", { length: 60 }).notNull(), // "My Bot", "Trading Script"
-    keyHash: text("key_hash").notNull(), // SHA-256 hash of the actual key
-    keyPrefix: varchar("key_prefix", { length: 12 }).notNull(), // First 8 chars for display: "kq_abc123..."
-    scopes: text("scopes"), // JSON array of permitted scopes
-    rateLimit: integer("rate_limit").notNull().default(60), // requests per minute
-    tier: text("tier").notNull().default("free"), // "free", "pro", "enterprise"
-    lastUsedAt: timestamp("last_used_at"),
-    requestCount: integer("request_count").notNull().default(0),
-    expiresAt: timestamp("expires_at"), // optional expiration
-    revokedAt: timestamp("revoked_at"), // null if active
+    keyHash: text("key_hash").notNull().unique(),
+    name: text("name"),
+    tier: text("tier").notNull().default("free"), // 'free', 'pro'
+    rateLimit: integer("rate_limit").notNull().default(60),
     createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    lastUsedAt: timestamp("last_used_at"),
+    revokedAt: timestamp("revoked_at"),
   },
   (table) => {
     return {
       userIdx: index("api_key_user_idx").on(table.userId),
-      prefixIdx: index("api_key_prefix_idx").on(table.keyPrefix),
-      hashIdx: index("api_key_hash_idx").on(table.keyHash),
     };
   },
 );
@@ -97,23 +90,46 @@ export const apiKey = pgTable(
 export const apiUsage = pgTable(
   "api_usage",
   {
-    id: text("id").primaryKey(), // We'll use a string ID (like ulid or nanoid) instead of serial for consistency
+    id: text("id").primaryKey(),
     apiKeyId: text("api_key_id")
       .notNull()
       .references(() => apiKey.id, { onDelete: "cascade" }),
-    date: timestamp("date").notNull(), // Used as DATE
-    requestCount: integer("request_count").notNull().default(0),
-    quotaLimit: integer("quota_limit").notNull(),
+    endpoint: text("endpoint").notNull(),
+    source: text("source").notNull(),
+    cached: boolean("cached").notNull().default(false),
+    latency: integer("latency"),
+    status: integer("status"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => {
     return {
-      apiKeyDateIdx: index("api_usage_api_key_date_idx").on(table.apiKeyId, table.date),
-      // We also enforce unique per key per date
-      uniqueApiKeyDate: index("api_usage_unique_idx").on(table.apiKeyId, table.date),
+      apiKeyIdx: index("api_usage_api_key_idx").on(table.apiKeyId),
+      endpointIdx: index("api_usage_endpoint_idx").on(table.endpoint),
+      sourceIdx: index("api_usage_source_idx").on(table.source),
+      createdAtIdx: index("api_usage_created_at_idx").on(table.createdAt),
     };
   },
 );
 
+export const apiUsageDaily = pgTable(
+  "api_usage_daily",
+  {
+    apiKeyId: text("api_key_id")
+      .notNull()
+      .references(() => apiKey.id, { onDelete: "cascade" }),
+    date: timestamp("date", { mode: "date" }).notNull(),
+    requestCount: integer("request_count").notNull().default(0),
+    cacheHits: integer("cache_hits").notNull().default(0),
+    errors: integer("errors").notNull().default(0),
+  },
+  (table) => {
+    return {
+      pk: primaryKey({ columns: [table.apiKeyId, table.date] }),
+    };
+  },
+);
+
+// --- API Proxy ---
 export const walletSubmission = pgTable(
   "wallet_submission",
   {
@@ -242,6 +258,13 @@ export const watchlist = pgTable(
     };
   },
 );
+
+// --- Leaderboard Cache ---
+export const leaderboardCache = pgTable("leaderboard_cache", {
+  key: varchar("key", { length: 255 }).primaryKey(), // e.g., "all_7d_kol"
+  data: text("data").notNull(), // JSON blob of LeaderboardEntry[]
+  lastUpdated: timestamp("last_updated").notNull().defaultNow(),
+});
 
 // --- Smart Money Tracker ---
 
