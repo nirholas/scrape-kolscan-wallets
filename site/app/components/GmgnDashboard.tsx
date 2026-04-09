@@ -188,8 +188,14 @@ export default function GmgnDashboard({
               {truncateAddr(wallet.wallet_address)}
             </a>
             <CopyButton text={wallet.wallet_address}
-              className="text-zinc-600 hover:text-white transition-colors text-xs leading-none" />
-          </div>
+              className="text-zinc-600 hover:text-white transition-colors text-xs leading-none" />            {wallet.remark_count > 0 && (
+              <span
+                className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 border border-purple-500/20 text-purple-400 tabular-nums"
+                title="Number of GMGN users tracking this wallet"
+              >
+                {wallet.remark_count.toLocaleString()} tracking
+              </span>
+            )}          </div>
         </div>
 
         <div className="flex gap-1.5 flex-shrink-0 flex-wrap justify-end">
@@ -259,6 +265,12 @@ export default function GmgnDashboard({
               <span className="text-zinc-500">Total Txs</span>
               <span className="text-white tabular-nums font-medium">{curr.txs}</span>
             </div>
+            {wallet.remark_count > 0 && (
+              <div className="flex justify-between">
+                <span className="text-zinc-500">GMGN Trackers</span>
+                <span className="text-purple-400 tabular-nums font-medium">{wallet.remark_count.toLocaleString()}</span>
+              </div>
+            )}
           </div>
 
           {/* Daily sparkline — always visible, labeled */}

@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import ShareButtons from "../components/ShareButtons";
 import NextImage from "next/image";
+import { timeAgo } from "@/lib/format";
 
 interface TrendingToken {
   tokenAddress: string;
@@ -55,16 +56,6 @@ function TokenLogo({ src }: { src: string }) {
       unoptimized
     />
   );
-}
-
-function timeAgo(date: string): string {
-  const diff = Date.now() - new Date(date).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d`;
 }
 
 export default function TrackClient() {

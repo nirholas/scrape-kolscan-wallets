@@ -2,8 +2,9 @@ import Link from "next/link";
 import CopyButton from "@/app/components/CopyButton";
 import ProfileActions from "@/app/components/ProfileActions";
 import ReportButton from "@/app/components/ReportButton";
-import { getWalletDetail } from "@/lib/wallet-detail";
+import GmgnDashboard from "@/app/components/GmgnDashboard";
 import { HeaderImg } from "@/app/components/FallbackImg";
+import { getWalletDetail } from "@/lib/wallet-detail";
 
 export const dynamic = "force-dynamic";
 
@@ -202,6 +203,30 @@ export default async function WalletPage({ params }: { params: { address: string
           <div className="text-xs text-zinc-600 mt-2">
             Status: <span className="text-zinc-400">{detail.community.status}</span> · Vouches: <span className="text-zinc-400">{detail.community.vouches}</span>
           </div>
+        </div>
+      )}
+
+      {detail.gmgnWallet && (
+        <div className="bg-bg-card border border-border rounded-xl p-4 mb-4">
+          <GmgnDashboard
+            wallet={detail.gmgnWallet}
+            nativeSymbol={detail.gmgnWallet.chain === "bsc" ? "BNB" : "SOL"}
+            explorerUrl={
+              detail.gmgnWallet.chain === "bsc"
+                ? `https://bscscan.com/address/${address}`
+                : `https://solscan.io/account/${address}`
+            }
+            quickLinks={[
+              {
+                href: `https://gmgn.ai/${detail.gmgnWallet.chain === "bsc" ? "bsc" : "sol"}/address/${address}?ref=nichxbt`,
+                label: "GMGN",
+              },
+            ]}
+            xProfileFollowers={detail.xProfile?.followers}
+            xProfileAvatar={detail.xProfile?.avatar ?? undefined}
+            xProfileBio={detail.xProfile?.bio ?? undefined}
+            kolscanExists={wallet?.tags?.includes("kolscan") ?? false}
+          />
         </div>
       )}
 

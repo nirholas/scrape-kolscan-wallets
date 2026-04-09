@@ -58,6 +58,7 @@ export interface WalletDetailResult {
     tokenSymbol: string | null;
     tokenName: string | null;
     chain: string;
+    tokenLaunchpad: string | null;
     totalVolume: number;
     trades: number;
     realizedProfit: number;
@@ -201,6 +202,7 @@ export async function getWalletDetail(addressRaw: string): Promise<WalletDetailR
     isValidAddress: inferredChain !== "unknown",
     hasTrackedData,
     wallet,
+    gmgnWallet: gmgnWallet ?? null,
     xProfile: xProfileSource
       ? {
           username: xProfileSource.username,

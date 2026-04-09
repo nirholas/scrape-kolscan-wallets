@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import type { KolEntry, GmgnWallet, UnifiedWallet, XProfile, XTrackerData, XTrackerAccount } from "./types";
 
 const KOLSCAN_DATA_URL =
@@ -8,7 +9,7 @@ const BSC_DATA_URL =
   "https://raw.githubusercontent.com/nirholas/scrape-kolscan-wallets/main/bscwallets.json";
 
 // --- KolScan Data ---
-export async function getData(): Promise<KolEntry[]> {
+async function _getData(): Promise<KolEntry[]> {
   try {
     const fs = await import("fs");
     const path = await import("path");
@@ -23,7 +24,9 @@ export async function getData(): Promise<KolEntry[]> {
   return res.json();
 }
 
-export async function getDataWithAvatars(): Promise<KolEntry[]> {
+export const getData = unstable_cache(_getData, ["kolscan-leaderboard"], { revalidate: 3600 });
+
+async function _getDataWithAvatars(): Promise<KolEntry[]> {
   const [entries, xProfiles] = await Promise.all([getData(), getXProfiles()]);
   for (const e of entries) {
     if (!e.avatar && e.twitter) {
@@ -33,6 +36,8 @@ export async function getDataWithAvatars(): Promise<KolEntry[]> {
   }
   return entries;
 }
+
+export const getDataWithAvatars = unstable_cache(_getDataWithAvatars, ["kolscan-leaderboard-avatars"], { revalidate: 3600 });
 
 // --- GMGN Data ---
 function nonEmpty(value: unknown): string | null {

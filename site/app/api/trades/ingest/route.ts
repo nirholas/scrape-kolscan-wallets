@@ -69,6 +69,12 @@ export async function POST(req: NextRequest) {
       source: typeof t.source === "string" ? t.source : "external",
       walletLabel: typeof t.walletLabel === "string" ? t.walletLabel.slice(0, 120) : null,
       walletAvatar: typeof t.walletAvatar === "string" ? t.walletAvatar : null,
+      walletTags: typeof t.walletTags === "string" ? t.walletTags : Array.isArray(t.walletTags) ? JSON.stringify(t.walletTags) : null,
+      tokenLogo: typeof t.tokenLogo === "string" ? t.tokenLogo : null,
+      tokenLaunchpad: typeof t.tokenLaunchpad === "string" ? t.tokenLaunchpad.slice(0, 60) : null,
+      realizedProfit: typeof t.realizedProfit === "number" ? t.realizedProfit : null,
+      realizedProfitPnl: typeof t.realizedProfitPnl === "number" ? t.realizedProfitPnl : null,
+      fee: typeof t.fee === "number" ? t.fee : null,
       tradedAt: new Date(t.tradedAt),
     });
   }

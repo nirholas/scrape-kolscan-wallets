@@ -7,13 +7,8 @@ import type { KolEntry, SortField, SortDir, Timeframe } from "@/lib/types";
 import ExportButton from "../components/ExportButton";
 import ShareButtons from "../components/ShareButtons";
 import { AvatarFallback } from "../components/FallbackImg";
+import { formatProfit, truncateAddr } from "@/lib/format";
 import CopyButton from "../components/CopyButton";
-
-function formatProfit(v: number): string {
-  const abs = Math.abs(v);
-  const str = abs >= 1000 ? `${(abs / 1000).toFixed(1)}k` : abs.toFixed(2);
-  return `${v >= 0 ? "+" : "-"}${str}`;
-}
 
 function WinRate({ wins, losses }: { wins: number; losses: number }) {
   const total = wins + losses;
@@ -25,10 +20,6 @@ function WinRate({ wins, losses }: { wins: number; losses: number }) {
 function SortIcon({ field, current, dir }: { field: string; current: string; dir: SortDir }) {
   if (field !== current) return <span className="text-zinc-700 ml-1 text-[10px]">↕</span>;
   return <span className="text-buy ml-1 text-[10px]">{dir === "desc" ? "↓" : "↑"}</span>;
-}
-
-function truncate(addr: string) {
-  return addr.slice(0, 4) + "..." + addr.slice(-4);
 }
 
 function LeaderboardInner({
@@ -224,7 +215,7 @@ function LeaderboardInner({
                         className="font-mono text-xs text-zinc-500 hover:text-buy transition-colors"
                         title={entry.wallet_address}
                       >
-                        {truncate(entry.wallet_address)}
+                        {truncateAddr(entry.wallet_address)}
                       </a>
                       <CopyButton text={entry.wallet_address} className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-600 hover:text-white text-xs leading-none" />
                     </div>

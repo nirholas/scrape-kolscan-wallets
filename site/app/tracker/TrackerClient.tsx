@@ -15,28 +15,6 @@ interface WatchlistEntry {
   createdAt: string;
 }
 
-function truncate(addr: string) {
-  if (addr.startsWith("0x")) return addr.slice(0, 6) + "..." + addr.slice(-4);
-  return addr.slice(0, 4) + "..." + addr.slice(-4);
-}
-
-function formatProfit(v: number) {
-  if (Math.abs(v) >= 1000) return `${v >= 0 ? "+" : ""}${(v / 1000).toFixed(1)}k`;
-  return `${v >= 0 ? "+" : ""}${v.toFixed(2)}`;
-}
-
-function timeAgo(date: string | Date): string {
-  const now = Date.now();
-  const d = new Date(date).getTime();
-  const diff = now - d;
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d`;
-}
-
 function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
   if (!active) return <span className="text-zinc-700 ml-1 text-[10px]">↕</span>;
   return <span className="text-buy ml-1 text-[10px]">{dir === "desc" ? "↓" : "↑"}</span>;
@@ -454,11 +432,11 @@ export default function TrackerClient({
                                     href={`/wallet/${entry.walletAddress}`}
                                   className="text-white hover:text-accent transition-colors font-medium"
                                 >
-                                  {entry.label || wallet?.name || truncate(entry.walletAddress)}
+                                  {entry.label || wallet?.name || truncateAddr(entry.walletAddress)}
                                 </Link>
                                 <div className="flex items-center gap-1.5 mt-0.5">
                                   <span className="text-[11px] text-zinc-600 font-mono">
-                                    {truncate(entry.walletAddress)}
+                                    {truncateAddr(entry.walletAddress)}
                                   </span>
                                   {wallet?.tags?.slice(0, 2).map((t) => (
                                     <span
