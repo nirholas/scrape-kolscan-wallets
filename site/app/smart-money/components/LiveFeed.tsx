@@ -1,10 +1,9 @@
 "use client";
 
-import { Suspense, useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import { timeAgo, shortAddr, formatUsd, formatNumber, formatProfit } from "@/lib/format";
-import { AvatarFallback } from "@/app/components/FallbackImg";
 import NextImage from "next/image";
 import type { SmartMoneyActivity } from "@/lib/smart-money-tracker";
 import { cn } from "@/lib/utils";
@@ -74,7 +73,7 @@ function FeedItem({ activity }: { activity: SmartMoneyActivity }) {
             <span className={cn("font-semibold mx-1", isBuy ? "text-green-500" : "text-red-500")}>
               {activity.action}
             </span>
-            <span>{formatNumber(activity.amount)}</span>
+            <span>{formatNumber(activity.amount ?? 0)}</span>
             <Link href={tokenHref(activity.chain, activity.tokenAddress || "")} className="font-medium text-gray-900 dark:text-gray-100 hover:underline ml-1">
               ${activity.tokenSymbol}
             </Link>
@@ -106,8 +105,8 @@ function FeedItem({ activity }: { activity: SmartMoneyActivity }) {
 }
 
 export default function LiveFeed() {
-  const router = useRouter();
-  const pathname = usePathname();
+  const _router = useRouter();
+  const _pathname = usePathname();
   const searchParams = useSearchParams();
   const chain = searchParams.get("chain");
 
@@ -115,7 +114,7 @@ export default function LiveFeed() {
   const [loading, setLoading] = useState(true);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
-  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [autoRefresh, _setAutoRefresh] = useState(true);
   const [newCount, setNewCount] = useState(0);
   const pendingRef = useRef<SmartMoneyActivity[]>([]);
 
