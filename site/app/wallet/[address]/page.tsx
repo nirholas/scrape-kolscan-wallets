@@ -222,6 +222,7 @@ export default async function WalletPage({ params: rawParams }: { params: Promis
         </div>
       )}
 
+      {(detail.tradeStats.totalTrades > 0 || !detail.gmgnWallet) && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-bg-card border border-border rounded-xl p-4">
           <div className="text-zinc-500 text-[11px] uppercase tracking-wider mb-3">Top Tokens</div>
