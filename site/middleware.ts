@@ -12,7 +12,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // --- UI auth gates ---
-  if (pathname.startsWith("/submit") || pathname.startsWith("/admin")) {
+  if (pathname.startsWith("/submit") || pathname.startsWith("/admin") || pathname.startsWith("/monitor")) {
     const sessionCookie = getSessionCookie(request);
     if (!sessionCookie) {
       const url = new URL("/auth", request.url);
@@ -24,9 +24,17 @@ export async function middleware(request: NextRequest) {
 
   // --- x402 payment gate for data API routes ---
   // Authenticated web-app users (session cookie present) get free access.
+  // Requests originating from the app itself (same origin) also bypass payment.
   if (x402 && isX402GatedRoute(pathname)) {
     const sessionCookie = getSessionCookie(request);
-    if (!sessionCookie) {
+    const requestOrigin = request.headers.get("origin");
+    const appOrigin =
+      process.env.NEXT_PUBLIC_URL ||
+      process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+      `${request.nextUrl.protocol}//${request.nextUrl.host}`;
+    const isSameOrigin =
+      requestOrigin !== null && requestOrigin === appOrigin;
+    if (!sessionCookie && !isSameOrigin) {
       return x402(request);
     }
   }
@@ -39,6 +47,8 @@ export const config = {
     // UI auth gates
     "/submit",
     "/admin/:path*",
+    "/monitor",
+    "/monitor/:path*",
     // x402 data API gates
     "/api/wallets/:path*",
     "/api/leaderboard/:path*",
