@@ -141,57 +141,48 @@ export default async function WalletPage({ params: rawParams }: { params: Promis
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-        <div className="bg-bg-card border border-border rounded p-3">
-          <div className="text-zinc-600 text-[11px] uppercase tracking-wider mb-1">Trades</div>
-          <div className="text-white text-2xl font-bold tabular-nums">{detail.tradeStats.totalTrades.toLocaleString()}</div>
-        </div>
-        <div className="bg-bg-card border border-border rounded p-3">
-          <div className="text-zinc-600 text-[11px] uppercase tracking-wider mb-1">Buy/Sell</div>
-          <div className="text-white text-2xl font-bold tabular-nums">
-            <span className="text-buy">{detail.tradeStats.totalBuys}</span>
-            <span className="text-zinc-600">/</span>
-            <span className="text-sell">{detail.tradeStats.totalSells}</span>
+      {detail.tradeStats.totalTrades > 0 && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+          <div className="bg-bg-card border border-border rounded p-3">
+            <div className="text-zinc-600 text-[11px] uppercase tracking-wider mb-1">Trades</div>
+            <div className="text-white text-2xl font-bold tabular-nums">{detail.tradeStats.totalTrades.toLocaleString()}</div>
           </div>
-        </div>
-        <div className="bg-bg-card border border-border rounded p-3">
-          <div className="text-zinc-600 text-[11px] uppercase tracking-wider mb-1">Win Rate</div>
-          <div className="text-white text-2xl font-bold tabular-nums">{winRate}</div>
-        </div>
-        <div className="bg-bg-card border border-border rounded p-3">
-          <div className="text-zinc-600 text-[11px] uppercase tracking-wider mb-1">Volume</div>
-          <div className="text-white text-2xl font-bold tabular-nums">
-            {formatUsd(detail.tradeStats.totalBuyUsd + detail.tradeStats.totalSellUsd)}
+          <div className="bg-bg-card border border-border rounded p-3">
+            <div className="text-zinc-600 text-[11px] uppercase tracking-wider mb-1">Buy/Sell</div>
+            <div className="text-white text-2xl font-bold tabular-nums">
+              <span className="text-buy">{detail.tradeStats.totalBuys}</span>
+              <span className="text-zinc-600">/</span>
+              <span className="text-sell">{detail.tradeStats.totalSells}</span>
+            </div>
           </div>
-        </div>
-        <div className="bg-bg-card border border-border rounded p-3">
-          <div className="text-zinc-600 text-[11px] uppercase tracking-wider mb-1">Realized PnL</div>
-          <div className={`text-2xl font-bold tabular-nums ${detail.tradeStats.totalRealizedProfit >= 0 ? "text-buy" : "text-sell"}`}>
-            {detail.tradeStats.totalRealizedProfit >= 0 ? "+" : ""}
-            {formatUsd(detail.tradeStats.totalRealizedProfit)}
+          <div className="bg-bg-card border border-border rounded p-3">
+            <div className="text-zinc-600 text-[11px] uppercase tracking-wider mb-1">Win Rate</div>
+            <div className="text-white text-2xl font-bold tabular-nums">{winRate}</div>
           </div>
-        </div>
-        <div className="bg-bg-card border border-border rounded p-3">
-          <div className="text-zinc-600 text-[11px] uppercase tracking-wider mb-1">Unique Tokens</div>
-          <div className="text-white text-2xl font-bold tabular-nums">{detail.tradeStats.uniqueTokens.toLocaleString()}</div>
-        </div>
-        <div className="bg-bg-card border border-border rounded p-3">
-          <div className="text-zinc-600 text-[11px] uppercase tracking-wider mb-1">First Trade</div>
-          <div className="text-white text-sm font-semibold tabular-nums mt-1">{formatDate(detail.tradeStats.firstTrade)}</div>
-        </div>
-        <div className="bg-bg-card border border-border rounded p-3">
-          <div className="text-zinc-600 text-[11px] uppercase tracking-wider mb-1">Last Trade</div>
-          <div className="text-white text-sm font-semibold tabular-nums mt-1">{formatDate(detail.tradeStats.lastTrade)}</div>
-        </div>
-      </div>
-
-      {detail.community && (
-        <div className="bg-bg-card border border-border rounded-xl p-4 mb-4">
-          <div className="text-zinc-500 text-[11px] uppercase tracking-wider mb-2">Community Context</div>
-          <div className="text-white font-semibold text-sm">{detail.community.label}</div>
-          {detail.community.notes && <p className="text-zinc-500 text-sm mt-1">{detail.community.notes}</p>}
-          <div className="text-xs text-zinc-600 mt-2">
-            Status: <span className="text-zinc-400">{detail.community.status}</span> · Vouches: <span className="text-zinc-400">{detail.community.vouches}</span>
+          <div className="bg-bg-card border border-border rounded p-3">
+            <div className="text-zinc-600 text-[11px] uppercase tracking-wider mb-1">Volume</div>
+            <div className="text-white text-2xl font-bold tabular-nums">
+              {formatUsd(detail.tradeStats.totalBuyUsd + detail.tradeStats.totalSellUsd)}
+            </div>
+          </div>
+          <div className="bg-bg-card border border-border rounded p-3">
+            <div className="text-zinc-600 text-[11px] uppercase tracking-wider mb-1">Realized PnL</div>
+            <div className={`text-2xl font-bold tabular-nums ${detail.tradeStats.totalRealizedProfit >= 0 ? "text-buy" : "text-sell"}`}>
+              {detail.tradeStats.totalRealizedProfit >= 0 ? "+" : ""}
+              {formatUsd(detail.tradeStats.totalRealizedProfit)}
+            </div>
+          </div>
+          <div className="bg-bg-card border border-border rounded p-3">
+            <div className="text-zinc-600 text-[11px] uppercase tracking-wider mb-1">Unique Tokens</div>
+            <div className="text-white text-2xl font-bold tabular-nums">{detail.tradeStats.uniqueTokens.toLocaleString()}</div>
+          </div>
+          <div className="bg-bg-card border border-border rounded p-3">
+            <div className="text-zinc-600 text-[11px] uppercase tracking-wider mb-1">First Trade</div>
+            <div className="text-white text-sm font-semibold tabular-nums mt-1">{formatDate(detail.tradeStats.firstTrade)}</div>
+          </div>
+          <div className="bg-bg-card border border-border rounded p-3">
+            <div className="text-zinc-600 text-[11px] uppercase tracking-wider mb-1">Last Trade</div>
+            <div className="text-white text-sm font-semibold tabular-nums mt-1">{formatDate(detail.tradeStats.lastTrade)}</div>
           </div>
         </div>
       )}
@@ -217,6 +208,17 @@ export default async function WalletPage({ params: rawParams }: { params: Promis
             xProfileBio={detail.xProfile?.bio ?? undefined}
             kolscanExists={wallet?.tags?.includes("kolscan") ?? false}
           />
+        </div>
+      )}
+
+      {detail.community && (
+        <div className="bg-bg-card border border-border rounded-xl p-4 mb-4">
+          <div className="text-zinc-500 text-[11px] uppercase tracking-wider mb-2">Community Context</div>
+          <div className="text-white font-semibold text-sm">{detail.community.label}</div>
+          {detail.community.notes && <p className="text-zinc-500 text-sm mt-1">{detail.community.notes}</p>}
+          <div className="text-xs text-zinc-600 mt-2">
+            Status: <span className="text-zinc-400">{detail.community.status}</span> · Vouches: <span className="text-zinc-400">{detail.community.vouches}</span>
+          </div>
         </div>
       )}
 
