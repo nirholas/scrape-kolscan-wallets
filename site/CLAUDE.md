@@ -32,3 +32,23 @@ npm run ingest:poll   # Poll GMGN API for live trades
 - **Validate at boundaries.** All API routes use Zod for input validation.
 - **Follow patterns.** Check how similar features work before adding new code.
 - **Test your changes.** Run `npx tsc --noEmit` to verify no type errors.
+
+### x402 Payment Gating
+
+**All `/api/**` routes are x402-gated by default.** The middleware uses a catch-all
+`/api/:path*` matcher and gates every route unless it is listed in `X402_FREE_PREFIXES`
+in `lib/x402.ts`. Session-authenticated users (web app) bypass payment automatically.
+
+**When adding a new API route:**
+- Public/data routes: no changes needed — gated automatically.
+- Internal/infra routes that must stay free: add the prefix to `X402_FREE_PREFIXES` in
+  `site/lib/x402.ts` with a comment explaining why it's exempt.
+
+**Currently exempt prefixes** (defined in `lib/x402.ts`):
+- `/api/auth` — Better-Auth (auth itself cannot require payment)
+- `/api/health` — Infra health probe
+- `/api/openapi.json` — OpenAPI spec for agent discoverability
+- `/api/admin` — Protected by session + admin role check at handler level
+- `/api/cron` — Protected by `CRON_SECRET` header (Vercel cron)
+- `/api/cache` — Internal cache management
+- `/api/trades/ingest` — Protected by `INGEST_SECRET` header

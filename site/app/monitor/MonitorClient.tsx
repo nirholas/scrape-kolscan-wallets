@@ -492,6 +492,10 @@ function MonitorInner({ walletMap }: Props) {
 
     try {
       const res = await fetch(`/api/trades?${params}`);
+      if (res.status === 402) {
+        setError("402");
+        return;
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setTrades(data.trades);
@@ -636,13 +640,27 @@ function MonitorInner({ walletMap }: Props) {
         <div className="flex-1 overflow-y-auto p-4">
           {error ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
-              <div className="text-sell text-sm">Failed to load trades: {error}</div>
-              <button
-                onClick={() => { setError(null); setLoading(true); fetchTrades(); }}
-                className="px-3 py-1.5 rounded border border-border text-xs text-zinc-400 hover:text-white transition-colors"
-              >
-                Retry
-              </button>
+              {error === "402" ? (
+                <>
+                  <div className="text-zinc-400 text-sm">Sign in to view live trades.</div>
+                  <a
+                    href={`/auth?redirect=/monitor`}
+                    className="px-3 py-1.5 rounded border border-border text-xs text-zinc-300 hover:text-white transition-colors"
+                  >
+                    Sign in
+                  </a>
+                </>
+              ) : (
+                <>
+                  <div className="text-sell text-sm">Failed to load trades: {error}</div>
+                  <button
+                    onClick={() => { setError(null); setLoading(true); fetchTrades(); }}
+                    className="px-3 py-1.5 rounded border border-border text-xs text-zinc-400 hover:text-white transition-colors"
+                  >
+                    Retry
+                  </button>
+                </>
+              )}
             </div>
           ) : loading ? (
             <div className="flex items-center justify-center py-20">

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
 import { paymentMiddleware } from "x402-next";
 import { X402_ENABLED, X402_PAYMENT_ADDRESS, X402_ROUTES, isX402GatedRoute } from "@/lib/x402";
+// X402_ROUTES uses a single "/api/*" wildcard — all new API routes are gated automatically.
 
 // Build the x402 payment middleware once at module load time.
 const x402 = X402_ENABLED
@@ -49,18 +50,7 @@ export const config = {
     "/admin/:path*",
     "/monitor",
     "/monitor/:path*",
-    // x402 data API gates
-    "/api/wallets/:path*",
-    "/api/leaderboard/:path*",
-    "/api/trades/:path*",
-    "/api/smart-money/:path*",
-    "/api/x-tracker/:path*",
-    "/api/portfolio/:path*",
-    "/api/scanner/:path*",
-    "/api/x-profiles/:path*",
-    "/api/trending/:path*",
-    "/api/search/:path*",
-    "/api/token/:path*",
-    "/api/proxy/:path*",
+    // x402 gate — covers ALL /api/* routes; exemptions are handled in isX402GatedRoute
+    "/api/:path*",
   ],
 };

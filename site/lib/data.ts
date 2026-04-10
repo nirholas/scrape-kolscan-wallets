@@ -229,6 +229,36 @@ export const getBscGmgnData = unstable_cache(
   { revalidate: 3600 },
 );
 
+export const getSolGmgnDataWithAvatars = unstable_cache(
+  async (): Promise<GmgnWallet[]> => {
+    const [wallets, xProfiles] = await Promise.all([getSolGmgnData(), getXProfiles()]);
+    for (const w of wallets) {
+      if (!w.avatar && w.twitter_username) {
+        const xp = getXProfile(xProfiles, w.twitter_username);
+        if (xp?.avatar) w.avatar = xp.avatar;
+      }
+    }
+    return wallets;
+  },
+  ["gmgn-sol-avatars"],
+  { revalidate: 3600 },
+);
+
+export const getBscGmgnDataWithAvatars = unstable_cache(
+  async (): Promise<GmgnWallet[]> => {
+    const [wallets, xProfiles] = await Promise.all([getBscGmgnData(), getXProfiles()]);
+    for (const w of wallets) {
+      if (!w.avatar && w.twitter_username) {
+        const xp = getXProfile(xProfiles, w.twitter_username);
+        if (xp?.avatar) w.avatar = xp.avatar;
+      }
+    }
+    return wallets;
+  },
+  ["gmgn-bsc-avatars"],
+  { revalidate: 3600 },
+);
+
 // --- Unified Data ---
 function kolscanToUnified(entries: KolEntry[]): UnifiedWallet[] {
   const byAddress = new Map<string, KolEntry[]>();

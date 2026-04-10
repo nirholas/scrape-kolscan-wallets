@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { getData, getDataWithAvatars, getSolGmgnData, getBscGmgnData } from "@/lib/data";
+import { getData, getDataWithAvatars, getSolGmgnData, getBscGmgnData, getSolGmgnDataWithAvatars, getBscGmgnDataWithAvatars } from "@/lib/data";
 import RecentTradesPreview from "./components/RecentTradesPreview";
 
 function formatPnl(val: number): string {
@@ -187,7 +187,7 @@ async function KolScanPreview() {
 }
 
 async function GmgnSolPreview() {
-  const solGmgn = await getSolGmgnData();
+  const solGmgn = await getSolGmgnDataWithAvatars();
   const top = [...solGmgn].sort((a, b) => b.realized_profit_7d - a.realized_profit_7d).slice(0, 5);
 
   return (
@@ -231,7 +231,7 @@ async function GmgnSolPreview() {
 }
 
 async function GmgnBscPreview() {
-  const bscGmgn = await getBscGmgnData();
+  const bscGmgn = await getBscGmgnDataWithAvatars();
   const top = [...bscGmgn].sort((a, b) => b.realized_profit_7d - a.realized_profit_7d).slice(0, 5);
 
   return (
