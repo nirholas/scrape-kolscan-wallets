@@ -123,13 +123,13 @@ async function StatsBar() {
 function Avatar({ src, name }: { src?: string | null; name: string }) {
   if (src) {
     return (
-      <Image
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
         src={src}
         alt={name}
         width={20}
         height={20}
-        className="rounded-full shrink-0 object-cover"
-        unoptimized
+        className="w-5 h-5 rounded-full shrink-0 object-cover"
       />
     );
   }
@@ -168,10 +168,10 @@ async function KolScanPreview() {
             {topByProfit.map((e, i) => (
               <tr key={e.wallet_address} className="border-b border-zinc-900 last:border-b-0 hover:bg-bg-card transition-colors">
                 <td className="px-3 py-2 text-[11px] text-zinc-700 font-mono tabular-nums">{i + 1}</td>
-                <td className="px-3 py-2">
-                  <Link href={`/wallet/${e.wallet_address}`} className="flex items-center gap-1.5 text-xs text-zinc-300 hover:text-white transition-colors">
+                <td className="px-3 py-2 max-w-0">
+                  <Link href={`/wallet/${e.wallet_address}`} className="flex items-center gap-1.5 text-xs text-zinc-300 hover:text-white transition-colors min-w-0">
                     <Avatar src={e.avatar} name={e.name} />
-                    {e.name}
+                    <span className="truncate">{e.name}</span>
                   </Link>
                 </td>
                 <td className={`px-3 py-2 text-xs text-right tabular-nums font-mono font-semibold ${e.profit >= 0 ? "text-buy" : "text-sell"}`}>
@@ -212,10 +212,10 @@ async function GmgnSolPreview() {
             {top.map((w, i) => (
               <tr key={w.wallet_address} className="border-b border-zinc-900 last:border-b-0 hover:bg-bg-card transition-colors">
                 <td className="px-3 py-2 text-[11px] text-zinc-700 font-mono tabular-nums">{i + 1}</td>
-                <td className="px-3 py-2">
-                  <Link href={`/wallet/${w.wallet_address}`} className="flex items-center gap-1.5 text-xs text-zinc-300 hover:text-white transition-colors">
+                <td className="px-3 py-2 max-w-0">
+                  <Link href={`/wallet/${w.wallet_address}`} className="flex items-center gap-1.5 text-xs text-zinc-300 hover:text-white transition-colors min-w-0">
                     <Avatar src={w.avatar} name={w.name} />
-                    {w.name}
+                    <span className="truncate">{w.name}</span>
                   </Link>
                 </td>
                 <td className={`px-3 py-2 text-xs text-right tabular-nums font-mono font-semibold ${w.realized_profit_7d >= 0 ? "text-buy" : "text-sell"}`}>
