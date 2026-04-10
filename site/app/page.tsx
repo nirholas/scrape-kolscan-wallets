@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { getData, getDataWithAvatars, getSolGmgnData, getBscGmgnData, getSolGmgnDataWithAvatars, getBscGmgnDataWithAvatars } from "@/lib/data";
 import RecentTradesPreview from "./components/RecentTradesPreview";
 
@@ -256,10 +255,10 @@ async function GmgnBscPreview() {
             {top.map((w, i) => (
               <tr key={w.wallet_address} className="border-b border-zinc-900 last:border-b-0 hover:bg-bg-card transition-colors">
                 <td className="px-3 py-2 text-[11px] text-zinc-700 font-mono tabular-nums">{i + 1}</td>
-                <td className="px-3 py-2">
-                  <Link href={`/wallet/${w.wallet_address}`} className="flex items-center gap-1.5 text-xs text-zinc-300 hover:text-white transition-colors">
+                <td className="px-3 py-2 max-w-0">
+                  <Link href={`/wallet/${w.wallet_address}`} className="flex items-center gap-1.5 text-xs text-zinc-300 hover:text-white transition-colors min-w-0">
                     <Avatar src={w.avatar} name={w.name} />
-                    {w.name}
+                    <span className="truncate">{w.name}</span>
                   </Link>
                 </td>
                 <td className={`px-3 py-2 text-xs text-right tabular-nums font-mono font-semibold ${w.realized_profit_7d >= 0 ? "text-buy" : "text-sell"}`}>
