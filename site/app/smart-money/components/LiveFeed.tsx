@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { timeAgo, shortAddr, formatUsd, formatNumber, formatProfit } from "@/lib/format";
 import NextImage from "next/image";
@@ -105,8 +105,6 @@ function FeedItem({ activity }: { activity: SmartMoneyActivity }) {
 }
 
 export default function LiveFeed() {
-  const _router = useRouter();
-  const _pathname = usePathname();
   const searchParams = useSearchParams();
   const chain = searchParams.get("chain");
 

@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import type { WalletToken } from "@/lib/wallet-aggregator";
 import { formatUsd } from "@/lib/format";
-import { FallbackImg } from "@/app/components/FallbackImg";
+
 
 type SortField = "value" | "change" | "name";
 
