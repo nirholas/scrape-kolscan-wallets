@@ -34,7 +34,7 @@ export const getData = unstable_cache(_getData, ["kolscan-leaderboard"], { reval
 async function _getDataWithAvatars(): Promise<KolEntry[]> {
   const [entries, xProfiles] = await Promise.all([getData(), getXProfiles()]);
   for (const e of entries) {
-    if (!e.avatar && e.twitter) {
+    if (e.twitter) {
       const xp = getXProfile(xProfiles, e.twitter);
       if (xp?.avatar) e.avatar = xp.avatar;
     }
@@ -233,7 +233,7 @@ export const getSolGmgnDataWithAvatars = unstable_cache(
   async (): Promise<GmgnWallet[]> => {
     const [wallets, xProfiles] = await Promise.all([getSolGmgnData(), getXProfiles()]);
     for (const w of wallets) {
-      if (!w.avatar && w.twitter_username) {
+      if (w.twitter_username) {
         const xp = getXProfile(xProfiles, w.twitter_username);
         if (xp?.avatar) w.avatar = xp.avatar;
       }
@@ -248,7 +248,7 @@ export const getBscGmgnDataWithAvatars = unstable_cache(
   async (): Promise<GmgnWallet[]> => {
     const [wallets, xProfiles] = await Promise.all([getBscGmgnData(), getXProfiles()]);
     for (const w of wallets) {
-      if (!w.avatar && w.twitter_username) {
+      if (w.twitter_username) {
         const xp = getXProfile(xProfiles, w.twitter_username);
         if (xp?.avatar) w.avatar = xp.avatar;
       }
@@ -349,7 +349,7 @@ export const getAllSolanaWallets = unstable_cache(
 
     // Enrich avatars from X profiles where missing
     for (const w of map.values()) {
-      if (!w.avatar && w.twitter) {
+      if (w.twitter) {
         const xp = getXProfile(xProfiles, w.twitter);
         if (xp?.avatar) w.avatar = xp.avatar;
       }
@@ -366,7 +366,7 @@ export const getBscWallets = unstable_cache(
     const [bsc, xProfiles] = await Promise.all([getBscGmgnData(), getXProfiles()]);
     const wallets = gmgnToUnified(bsc);
     for (const w of wallets) {
-      if (!w.avatar && w.twitter) {
+      if (w.twitter) {
         const xp = getXProfile(xProfiles, w.twitter);
         if (xp?.avatar) w.avatar = xp.avatar;
       }
